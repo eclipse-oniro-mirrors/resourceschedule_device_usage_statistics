@@ -115,7 +115,6 @@ void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
         HandleCalendarIncrease(calendar, op, provider);
     }
     else {
-        // 剩下的少数几个 case 直接留在主函数里，或者也可以提一个 HandleCalendarMisc
         switch (op) {
             case CalendarOp::SET_MILLISECONDS:
                 calendar.SetMilliseconds(provider.ConsumeIntegral<int64_t>());
