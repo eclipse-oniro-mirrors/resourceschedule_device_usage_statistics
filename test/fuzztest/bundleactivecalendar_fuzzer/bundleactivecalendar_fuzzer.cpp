@@ -110,10 +110,9 @@ void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
     if (op == CalendarOp::TRUNCATE_TO_CUSTOM ||
        (op >= CalendarOp::TRUNCATE_TO_DAY && op <= CalendarOp::TRUNCATE_TO_YEAR)) {
         HandleCalendarTruncate(calendar, op, provider);
-    }
-    else if (op >= CalendarOp::INCREASE_DAYS && op <= CalendarOp::INCREASE_YEARS) {
+    } else if (op >= CalendarOp::INCREASE_DAYS && op <= CalendarOp::INCREASE_YEARS) {
         HandleCalendarIncrease(calendar, op, provider);
-    }else {
+    } else {
         switch (op) {
             case CalendarOp::SET_MILLISECONDS:
                 calendar.SetMilliseconds(provider.ConsumeIntegral<int64_t>());
