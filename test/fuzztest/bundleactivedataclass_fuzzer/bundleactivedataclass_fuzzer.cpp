@@ -39,15 +39,15 @@ constexpr int32_t FUZZ_CODE_7  = 7;
 constexpr int32_t FUZZ_CODE_MAX = 7;
 
 // Magic numbers for timestamp offsets in Update() tests
-constexpr int64_t kTsOffset1 = 1;
-constexpr int64_t kTsOffset2 = 2;
-constexpr int64_t kTsOffset3 = 3;
-constexpr int64_t kTsOffset4 = 4;
-constexpr int64_t kTsOffset5 = 5;
-constexpr int64_t kTsOffset6 = 6;
+constexpr int64_t K_TS_OFFSET1 = 1;
+constexpr int64_t K_TS_OFFSET2 = 2;
+constexpr int64_t K_TS_OFFSET3 = 3;
+constexpr int64_t K_TS_OFFSET4 = 4;
+constexpr int64_t K_TS_OFFSET5 = 5;
+constexpr int64_t K_TS_OFFSET6 = 6;
 
 // Magic number for hours vector size in HighFrequencyPeriod
-constexpr int32_t kHoursVecSizeMax = 24;
+constexpr int32_t K_HOURS_VEC_SIZE_MAX = 24;
 
 /* =============================================================
  *  BundleActivePackageStats
@@ -82,14 +82,14 @@ bool PackageStatsFuzzTest(FuzzedDataProvider* fdp)
     std::string abilityId = fdp->ConsumeRandomLengthString();
     int32_t uid           = fdp->ConsumeIntegral<int32_t>();
     stats1.Update(longTask, ts, eventId, abilityId, uid);
-    stats1.Update("", ts + kTsOffset1, BundleActiveEvent::ABILITY_FOREGROUND, abilityId, uid);
-    stats1.Update("", ts + kTsOffset2, BundleActiveEvent::ABILITY_BACKGROUND, abilityId, uid);
-    stats1.Update(longTask, ts + kTsOffset3, BundleActiveEvent::LONG_TIME_TASK_STARTTED, abilityId, uid);
-    stats1.Update(longTask, ts + kTsOffset4, BundleActiveEvent::LONG_TIME_TASK_ENDED, abilityId, uid);
+    stats1.Update("", ts + K_TS_OFFSET1, BundleActiveEvent::ABILITY_FOREGROUND, abilityId, uid);
+    stats1.Update("", ts + K_TS_OFFSET2, BundleActiveEvent::ABILITY_BACKGROUND, abilityId, uid);
+    stats1.Update(longTask, ts + K_TS_OFFSET3, BundleActiveEvent::LONG_TIME_TASK_STARTTED, abilityId, uid);
+    stats1.Update(longTask, ts + K_TS_OFFSET4, BundleActiveEvent::LONG_TIME_TASK_ENDED, abilityId, uid);
 
     // IncrementTimeUsed, IncrementServiceTimeUsed, IncrementBundleLaunchedCount
-    stats1.IncrementTimeUsed(ts + kTsOffset5);
-    stats1.IncrementServiceTimeUsed(ts + kTsOffset6);
+    stats1.IncrementTimeUsed(ts + K_TS_OFFSET5);
+    stats1.IncrementServiceTimeUsed(ts + K_TS_OFFSET6);
     stats1.IncrementBundleLaunchedCount();
 
     // ToString
@@ -244,7 +244,7 @@ bool HighFrequencyPeriodFuzzTest(FuzzedDataProvider* fdp)
 
     // Parameterized constructor
     std::string bundleName = fdp->ConsumeRandomLengthString();
-    int32_t vecSize        = fdp->ConsumeIntegralInRange<int32_t>(0, kHoursVecSizeMax);
+    int32_t vecSize        = fdp->ConsumeIntegralInRange<int32_t>(0, K_HOURS_VEC_SIZE_MAX);
     std::vector<int32_t> hours;
     for (int32_t i = 0; i < vecSize; ++i) {
         hours.push_back(fdp->ConsumeIntegral<int32_t>());
@@ -320,8 +320,7 @@ bool EventMarshallingFuzzTest(FuzzedDataProvider* fdp)
     ev6.ToString();
 
     // operator=
-    BundleActiveEvent ev8;
-    ev8 = ev2;
+    BundleActiveEvent ev8 = ev2;
 
     // IsBundleEvent, IsAppStateEvent
     (void)BundleActiveEvent::IsBundleEvent(eventId);

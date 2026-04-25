@@ -41,18 +41,18 @@ constexpr int32_t FUZZ_CODE_13 = 13; // Connect failure path
 constexpr int32_t FUZZ_CODE_MAX = 13;
 
 // Magic numbers for random range boundaries
-constexpr int32_t kFlagCodeRangeMax = 3;
-constexpr int32_t kBundleFlagCodeRangeMax = 2;
+constexpr int32_t K_FLAG_CODE_RANGE_MAX = 3;
+constexpr int32_t K_BUNDLE_FLAG_CODE_RANGE_MAX = 2;
 
 // Magic number for loop count in Connect failure path test
-constexpr int32_t kConnectRetryCount = 3;
+constexpr int32_t K_CONNECT_RETRY_COUNT = 3;
 
 // Magic numbers for bundle name cache test
-constexpr int32_t kBundleCacheCountMax = 5;
-constexpr int32_t kUidInsertCountMax = 3;
+constexpr int32_t K_BUNDLE_CACHE_COUNT_MAX = 5;
+constexpr int32_t K_UID_INSERT_COUNT_MAX = 3;
 
 // Magic number for invalid user ID in system event test
-constexpr int32_t kInvalidUserId = -1;
+constexpr int32_t K_INVALID_USER_ID = -1;
 
 /* -------------------------------------------------------
  * Helper: ensure BundleActiveGroupController is initialized
@@ -104,7 +104,7 @@ bool BundleMgrGetApplicationInfoVariousFlagsFuzzTest(FuzzedDataProvider* fdp)
 {
     std::string appName = fdp->ConsumeRandomLengthString();
     int32_t userId = fdp->ConsumeIntegral<int32_t>();
-    int32_t flagCode = fdp->ConsumeIntegralInRange(0, kFlagCodeRangeMax);
+    int32_t flagCode = fdp->ConsumeIntegralInRange(0, K_FLAG_CODE_RANGE_MAX);
 
     AppExecFwk::ApplicationFlag flag;
     switch (flagCode) {
@@ -164,7 +164,7 @@ bool BundleMgrGetBundleInfoFuzzTest(FuzzedDataProvider* fdp)
 {
     std::string bundleName = fdp->ConsumeRandomLengthString();
     int32_t userId = fdp->ConsumeIntegral<int32_t>();
-    int32_t flagCode = fdp->ConsumeIntegralInRange(0, kBundleFlagCodeRangeMax);
+    int32_t flagCode = fdp->ConsumeIntegralInRange(0, K_BUNDLE_FLAG_CODE_RANGE_MAX);
 
     AppExecFwk::BundleFlag flag;
     switch (flagCode) {
@@ -212,7 +212,7 @@ bool BundleMgrIsLauncherAppCacheHitFuzzTest(FuzzedDataProvider* fdp)
 
     // Pre-fill cache with several bundle names
     std::vector<std::string> bundleNames;
-    int count = fdp->ConsumeIntegralInRange(1, kBundleCacheCountMax);
+    int count = fdp->ConsumeIntegralInRange(1, K_BUNDLE_CACHE_COUNT_MAX);
     for (int i = 0; i < count; ++i) {
         bundleNames.push_back(fdp->ConsumeRandomLengthString());
     }
@@ -246,10 +246,10 @@ bool BundleMgrIsLauncherAppSystemEventFuzzTest(FuzzedDataProvider* /*fdp*/)
 {
     // These are the system event bundle names defined in bundle_active_constant.h
     // and inserted in InitSystemEvent()
-    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.lock", kInvalidUserId);
-    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.unlock", kInvalidUserId);
-    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.sleep", kInvalidUserId);
-    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.wakeup", kInvalidUserId);
+    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.lock", K_INVALID_USER_ID);
+    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.unlock", K_INVALID_USER_ID);
+    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.sleep", K_INVALID_USER_ID);
+    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.wakeup", K_INVALID_USER_ID);
     return true;
 }
 
@@ -270,7 +270,7 @@ bool BundleMgrInsertAndGetUidSetFuzzTest(FuzzedDataProvider* fdp)
     std::set<int32_t> uidSet = BundleActiveBundleMgrHelper::GetInstance()->GetPackageUidSet(bundleName);
 
     // Insert more UIDs
-    int moreCount = fdp->ConsumeIntegralInRange(0, kUidInsertCountMax);
+    int moreCount = fdp->ConsumeIntegralInRange(0, K_UID_INSERT_COUNT_MAX);
     for (int i = 0; i < moreCount; ++i) {
         int32_t anotherUid = fdp->ConsumeIntegral<int32_t>();
         BundleActiveBundleMgrHelper::GetInstance()->InsertPackageUid(bundleName, anotherUid);
@@ -297,7 +297,7 @@ bool BundleMgrDeletePackageUidFuzzTest(FuzzedDataProvider* fdp)
     int32_t userId = fdp->ConsumeIntegral<int32_t>();
 
     // Insert several UIDs first
-    int uidCount = fdp->ConsumeIntegralInRange(1, kBundleCacheCountMax);
+    int uidCount = fdp->ConsumeIntegralInRange(1, K_BUNDLE_CACHE_COUNT_MAX);
     for (int i = 0; i < uidCount; ++i) {
         BundleActiveBundleMgrHelper::GetInstance()->InsertPackageUid(bundleName, i);
     }
@@ -374,7 +374,7 @@ bool BundleMgrConnectFailureFuzzTest(FuzzedDataProvider* fdp)
 
     // Call multiple times to hit "already connected" path
     std::string bundleName;
-    for (int i = 0; i < kConnectRetryCount; ++i) {
+    for (int i = 0; i < K_CONNECT_RETRY_COUNT; ++i) {
         BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(0, bundleName);
     }
 

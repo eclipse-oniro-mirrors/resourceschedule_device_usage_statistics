@@ -39,18 +39,19 @@ constexpr int32_t TIME_OFFSET_SHUTDOWN = 2;
 constexpr int32_t TIME_OFFSET_STARTUP = 3;
 
 // Magic numbers for FindBestIndex boundary test
-constexpr int64_t kTimeOffsetBoundary = 10;
+constexpr int64_t K_TIME_OFFSET_BOUNDARY = 10;
 
 // Magic numbers for timestamp offset calculations
-constexpr int64_t kTimestampOffset1 = 1;
-constexpr int32_t kTimestampMultiplier10 = 10;
-constexpr int32_t kTimestampMultiplier5 = 5;
-constexpr int32_t kTimestampMultiplier7 = 7;
-constexpr int64_t kTimestampOffset100 = 100;
-constexpr int32_t kTimestampDivider2 = 2;
+constexpr int64_t K_TIMESTAMP_OFFSET1 = 1;
+constexpr int32_t K_TIMESTAMP_MULTIPLIER10 = 10;
+constexpr int32_t K_TIMESTAMP_MULTIPLIER5 = 5;
+constexpr int32_t K_TIMESTAMP_MULTIPLIER7 = 7;
+constexpr int64_t K_TIMESTAMP_OFFSET100 = 100;
+constexpr int32_t K_TIMESTAMP_DIVIDER2 = 2;
 
 /* Build a fuzzed BundleActiveEvent */
-static BundleActiveEvent BuildFuzzEvent(FuzzedDataProvider* fdp) {
+static BundleActiveEvent BuildFuzzEvent(FuzzedDataProvider* fdp)
+{
     BundleActiveEvent event;
     event.bundleName_ = fdp->ConsumeRandomLengthString();
     event.moduleName_ = fdp->ConsumeRandomLengthString();
@@ -65,7 +66,8 @@ static BundleActiveEvent BuildFuzzEvent(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 0: Default constructor + Size()
  * ============================================================= */
-bool EventListCtorSizeFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListCtorSizeFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList list;
     (void)list.Size();
     return true;
@@ -74,7 +76,8 @@ bool EventListCtorSizeFuzzTest(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 1: Clear() on empty and non-empty list
  * ============================================================= */
-bool EventListClearFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListClearFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList list;
     // Clear empty
     list.Clear();
@@ -90,13 +93,14 @@ bool EventListClearFuzzTest(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 2: Insert at the end (sorted order)
  * ============================================================= */
-bool EventListInsertSortedFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListInsertSortedFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList list;
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(1, 10);
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
     for (int32_t i = 0; i < count; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i * kTimestampOffset1;  // monotonically increasing
+        ev.timeStamp_ = baseTs + i * K_TIMESTAMP_OFFSET1;  // monotonically increasing
         list.Insert(ev);
     }
     (void)list.Size();
@@ -106,7 +110,8 @@ bool EventListInsertSortedFuzzTest(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 3: Insert at front/middle (unsorted order)
  * ============================================================= */
-bool EventListInsertUnsortedFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListInsertUnsortedFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList list;
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(1, 10);
     for (int32_t i = 0; i < count; ++i) {
@@ -121,14 +126,15 @@ bool EventListInsertUnsortedFuzzTest(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 4: FindBestIndex with various timestamps
  * ============================================================= */
-bool EventListFindBestIndexFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListFindBestIndexFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList list;
     // Populate list first
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(1, 10);
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
     for (int32_t i = 0; i < count; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i * kTimestampMultiplier10;
+        ev.timeStamp_ = baseTs + i * K_TIMESTAMP_MULTIPLIER10;
         list.Insert(ev);
     }
     // Now query FindBestIndex with various timestamps
@@ -147,7 +153,8 @@ bool EventListFindBestIndexFuzzTest(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 5: Merge two non-empty lists
  * ============================================================= */
-bool EventListMergeFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListMergeFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList listA;
     BundleActiveEventList listB;
 
@@ -157,12 +164,12 @@ bool EventListMergeFuzzTest(FuzzedDataProvider* fdp) {
 
     for (int32_t i = 0; i < countA; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i * kTimestampMultiplier5;
+        ev.timeStamp_ = baseTs + i * K_TIMESTAMP_MULTIPLIER5;
         listA.Insert(ev);
     }
     for (int32_t i = 0; i < countB; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + kTimestampOffset100 + i * kTimestampMultiplier5;
+        ev.timeStamp_ = baseTs + K_TIMESTAMP_OFFSET100 + i * K_TIMESTAMP_MULTIPLIER5;
         listB.Insert(ev);
     }
 
@@ -178,18 +185,19 @@ bool EventListMergeFuzzTest(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 6: Complex mix - insert, find, merge, clear
  * ============================================================= */
-bool EventListComplexFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListComplexFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList list;
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
 
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(1, 8);
     for (int32_t i = 0; i < count; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i * kTimestampMultiplier7;
+        ev.timeStamp_ = baseTs + i * K_TIMESTAMP_MULTIPLIER7;
         list.Insert(ev);
     }
 
-    (void)list.FindBestIndex(baseTs + count * kTimestampMultiplier7 / kTimestampDivider2);
+    (void)list.FindBestIndex(baseTs + count * K_TIMESTAMP_MULTIPLIER7 / K_TIMESTAMP_DIVIDER2);
     (void)list.Size();
 
     BundleActiveEventList other;
@@ -207,7 +215,8 @@ bool EventListComplexFuzzTest(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 7: Insert all BundleActiveEvent::SYSTEM_* events
  * ============================================================= */
-bool EventListSystemEventsFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListSystemEventsFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList list;
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
 
@@ -215,7 +224,7 @@ bool EventListSystemEventsFuzzTest(FuzzedDataProvider* fdp) {
     ev1.bundleName_ = fdp->ConsumeRandomLengthString();
     list.Insert(ev1);
 
-    BundleActiveEvent ev2(BundleActiveEvent::USER_INTERACTIVE, baseTs + kTimestampOffset1);
+    BundleActiveEvent ev2(BundleActiveEvent::USER_INTERACTIVE, baseTs + K_TIMESTAMP_OFFSET1);
     ev2.bundleName_ = fdp->ConsumeRandomLengthString();
     list.Insert(ev2);
 
@@ -229,7 +238,7 @@ bool EventListSystemEventsFuzzTest(FuzzedDataProvider* fdp) {
 
     (void)list.Size();
     (void)list.FindBestIndex(baseTs);
-    (void)list.FindBestIndex(baseTs + kTimeOffsetBoundary);
+    (void)list.FindBestIndex(baseTs + K_TIME_OFFSET_BOUNDARY);
 
     list.Clear();
     return true;
@@ -238,7 +247,8 @@ bool EventListSystemEventsFuzzTest(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 8: Edge cases - extreme timestamps, zero uid
  * ============================================================= */
-bool EventListEdgeCasesFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListEdgeCasesFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList list;
 
     // Insert with zero values
@@ -280,20 +290,21 @@ bool EventListEdgeCasesFuzzTest(FuzzedDataProvider* fdp) {
 /* =============================================================
  *  Test 9: Stress - many inserts, FindBestIndex on boundary
  * ============================================================= */
-bool EventListStressFuzzTest(FuzzedDataProvider* fdp) {
+bool EventListStressFuzzTest(FuzzedDataProvider* fdp)
+{
     BundleActiveEventList list;
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
 
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(5, 20);
     for (int32_t i = 0; i < count; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i * kTimestampOffset1;
+        ev.timeStamp_ = baseTs + i * K_TIMESTAMP_OFFSET1;
         list.Insert(ev);
     }
 
     // Query at exact boundary positions
     for (int32_t i = 0; i <= count; ++i) {
-        (void)list.FindBestIndex(baseTs + i * kTimestampOffset1);
+        (void)list.FindBestIndex(baseTs + i * K_TIMESTAMP_OFFSET1);
     }
 
     BundleActiveEventList merged;
@@ -305,7 +316,8 @@ bool EventListStressFuzzTest(FuzzedDataProvider* fdp) {
 /* -------------------------------------------------------
  * Dispatch
  * ------------------------------------------------------- */
-void FuzzEventList(FuzzedDataProvider& fdp) {
+void FuzzEventList(FuzzedDataProvider& fdp)
+{
     int code = fdp.ConsumeIntegralInRange(FUZZ_CODE_0, FUZZ_CODE_MAX);
     switch (code) {
         case FUZZ_CODE_0:
@@ -347,7 +359,8 @@ void FuzzEventList(FuzzedDataProvider& fdp) {
 }  // namespace OHOS
 
 /* Fuzzer entry point */
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+{
     OHOS::DelayedSingleton<OHOS::DeviceUsageStats::FuzztestHelper>::GetInstance()->NativeTokenGet();
 
     FuzzedDataProvider fdp(data, size);

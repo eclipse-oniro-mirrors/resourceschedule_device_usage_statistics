@@ -38,19 +38,19 @@ constexpr int32_t FUZZ_CODE_8  = 8;
 constexpr int32_t FUZZ_CODE_MAX = 8;
 
 // Magic numbers for timestamp offsets
-constexpr int64_t kTsOffset1 = 1;
-constexpr int64_t kTsOffset2 = 2;
-constexpr int64_t kTsOffset3 = 3;
-constexpr int64_t kTsOffset4 = 4;
+constexpr int64_t K_TS_OFFSET1 = 1;
+constexpr int64_t K_TS_OFFSET2 = 2;
+constexpr int64_t K_TS_OFFSET3 = 3;
+constexpr int64_t K_TS_OFFSET4 = 4;
 
 // PERIOD_* constants for PeriodStatsConstantsFuzzTest
-constexpr int32_t kPeriodDaily = 0;
-constexpr int32_t kPeriodWeekly = 1;
-constexpr int32_t kPeriodMonthly = 2;
-constexpr int32_t kPeriodYearly = 3;
+constexpr int32_t K_PERIOD_DAILY = 0;
+constexpr int32_t K_PERIOD_WEEKLY = 1;
+constexpr int32_t K_PERIOD_MONTHLY = 2;
+constexpr int32_t K_PERIOD_YEARLY = 3;
 
 // Magic number for event count in AddEvent test
-constexpr int32_t kEventCountMax = 5;
+constexpr int32_t K_EVENT_COUNT_MAX = 5;
 
 /* Build a fuzzed BundleActiveEvent */
 static BundleActiveEvent BuildFuzzEvent(FuzzedDataProvider* fdp)
@@ -109,11 +109,11 @@ bool PeriodStatsUpdateFuzzTest(FuzzedDataProvider* fdp)
     stats.Update(bundleName, longTimeTaskName, timeStamp, eventId, abilityId, uid);
 
     // Update again with a different event (ABILITY_FOREGROUND = 2, ABILITY_BACKGROUND = 3)
-    stats.Update(bundleName, "", timeStamp + kTsOffset1, BundleActiveEvent::ABILITY_FOREGROUND, abilityId, uid);
-    stats.Update(bundleName, "", timeStamp + kTsOffset2, BundleActiveEvent::ABILITY_BACKGROUND, abilityId, uid);
-    stats.Update(bundleName, longTimeTaskName, timeStamp + kTsOffset3,
+    stats.Update(bundleName, "", timeStamp + K_TS_OFFSET1, BundleActiveEvent::ABILITY_FOREGROUND, abilityId, uid);
+    stats.Update(bundleName, "", timeStamp + K_TS_OFFSET2, BundleActiveEvent::ABILITY_BACKGROUND, abilityId, uid);
+    stats.Update(bundleName, longTimeTaskName, timeStamp + K_TS_OFFSET3,
         BundleActiveEvent::LONG_TIME_TASK_STARTTED, abilityId, uid);
-    stats.Update(bundleName, longTimeTaskName, timeStamp + kTsOffset4,
+    stats.Update(bundleName, longTimeTaskName, timeStamp + K_TS_OFFSET4,
         BundleActiveEvent::LONG_TIME_TASK_ENDED, abilityId, uid);
     return true;
 }
@@ -129,7 +129,7 @@ bool PeriodStatsAddEventFuzzTest(FuzzedDataProvider* fdp)
     stats.AddEvent(event);
 
     // Add multiple events
-    int32_t count = fdp->ConsumeIntegralInRange<int32_t>(0, kEventCountMax);
+    int32_t count = fdp->ConsumeIntegralInRange<int32_t>(0, K_EVENT_COUNT_MAX);
     for (int32_t i = 0; i < count; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
         stats.AddEvent(ev);
@@ -168,10 +168,10 @@ bool PeriodStatsAddEventStatsToFuzzTest(FuzzedDataProvider* fdp)
     // Populate trackers by calling screen/keyguard methods first
     int64_t ts = fdp->ConsumeIntegral<int64_t>();
     stats.UpdateScreenInteractive(ts);
-    stats.UpdateScreenNonInteractive(ts + kTsOffset1);
-    stats.UpdateKeyguardShown(ts + kTsOffset2);
-    stats.UpdateKeyguardHidden(ts + kTsOffset3);
-    stats.CommitTime(ts + kTsOffset4);
+    stats.UpdateScreenNonInteractive(ts + K_TS_OFFSET1);
+    stats.UpdateKeyguardShown(ts + K_TS_OFFSET2);
+    stats.UpdateKeyguardHidden(ts + K_TS_OFFSET3);
+    stats.CommitTime(ts + K_TS_OFFSET4);
 
     std::vector<BundleActiveEventStats> eventStatsList;
     stats.AddEventStatsTo(eventStatsList);
@@ -236,24 +236,24 @@ bool PeriodStatsConstantsFuzzTest(FuzzedDataProvider* fdp)
     // Exercise all PERIOD_* paths through Stats construction
     int64_t ts = fdp->ConsumeIntegral<int64_t>();
     {
-        BundleActivePeriodStats daily(kPeriodDaily, ts);
+        BundleActivePeriodStats daily(K_PERIOD_DAILY, ts);
         daily.UpdateScreenInteractive(ts);
-        daily.CommitTime(ts + kTsOffset1);
+        daily.CommitTime(ts + K_TS_OFFSET1);
     }
     {
-        BundleActivePeriodStats weekly(kPeriodWeekly, ts);
+        BundleActivePeriodStats weekly(K_PERIOD_WEEKLY, ts);
         weekly.UpdateKeyguardShown(ts);
-        weekly.CommitTime(ts + kTsOffset1);
+        weekly.CommitTime(ts + K_TS_OFFSET1);
     }
     {
-        BundleActivePeriodStats monthly(kPeriodMonthly, ts);
+        BundleActivePeriodStats monthly(K_PERIOD_MONTHLY, ts);
         monthly.UpdateScreenNonInteractive(ts);
-        monthly.CommitTime(ts + kTsOffset1);
+        monthly.CommitTime(ts + K_TS_OFFSET1);
     }
     {
-        BundleActivePeriodStats yearly(kPeriodYearly, ts);
+        BundleActivePeriodStats yearly(K_PERIOD_YEARLY, ts);
         yearly.UpdateKeyguardHidden(ts);
-        yearly.CommitTime(ts + kTsOffset1);
+        yearly.CommitTime(ts + K_TS_OFFSET1);
     }
     return true;
 }

@@ -38,9 +38,9 @@ constexpr int32_t FUZZ_CODE_8  = 8;
 constexpr int32_t FUZZ_CODE_MAX = 8;
 
 // Magic numbers for calendar operation test ranges
-constexpr int64_t kIncreaseValueMax = 100;
-constexpr int64_t kIncreaseValueOne = 1;
-constexpr int64_t kIncreaseValueZero = 0;
+constexpr int64_t K_INCREASE_VALUE_MAX = 100;
+constexpr int64_t K_INCREASE_VALUE_ONE = 1;
+constexpr int64_t K_INCREASE_VALUE_ZERO = 0;
 
 /* =============================================================
  *  Test 0: Default constructor + parameterized constructor
@@ -180,7 +180,7 @@ bool CalendarChainOperationsFuzzTest(FuzzedDataProvider* fdp)
     cal.SetMilliseconds(ts);
 
     // Chain: IncreaseDays -> TruncateToDay -> IncreaseWeeks -> TruncateToWeek
-    int64_t incVal = fdp->ConsumeIntegralInRange<int64_t>(1, kIncreaseValueMax);
+    int64_t incVal = fdp->ConsumeIntegralInRange<int64_t>(1, K_INCREASE_VALUE_MAX);
     cal.IncreaseDays(incVal);
     (void)cal.GetMilliseconds();
     cal.TruncateToDay();
@@ -214,17 +214,17 @@ bool CalendarEdgeCasesFuzzTest(FuzzedDataProvider* fdp)
     cal.TruncateToWeek();
     cal.TruncateToMonth();
     cal.TruncateToYear();
-    cal.IncreaseDays(kIncreaseValueOne);
-    cal.IncreaseWeeks(kIncreaseValueOne);
-    cal.IncreaseMonths(kIncreaseValueOne);
-    cal.IncreaseYears(kIncreaseValueOne);
+    cal.IncreaseDays(K_INCREASE_VALUE_ONE);
+    cal.IncreaseWeeks(K_INCREASE_VALUE_ONE);
+    cal.IncreaseMonths(K_INCREASE_VALUE_ONE);
+    cal.IncreaseYears(K_INCREASE_VALUE_ONE);
     (void)cal.GetMilliseconds();
 
     // Zero Increase
-    cal.IncreaseDays(kIncreaseValueZero);
-    cal.IncreaseWeeks(kIncreaseValueZero);
-    cal.IncreaseMonths(kIncreaseValueZero);
-    cal.IncreaseYears(kIncreaseValueZero);
+    cal.IncreaseDays(K_INCREASE_VALUE_ZERO);
+    cal.IncreaseWeeks(K_INCREASE_VALUE_ZERO);
+    cal.IncreaseMonths(K_INCREASE_VALUE_ZERO);
+    cal.IncreaseYears(K_INCREASE_VALUE_ZERO);
 
     return true;
 }
