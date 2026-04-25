@@ -113,8 +113,7 @@ void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
     }
     else if (op >= CalendarOp::INCREASE_DAYS && op <= CalendarOp::INCREASE_YEARS) {
         HandleCalendarIncrease(calendar, op, provider);
-    }
-    else {
+    }else {
         switch (op) {
             case CalendarOp::SET_MILLISECONDS:
                 calendar.SetMilliseconds(provider.ConsumeIntegral<int64_t>());
