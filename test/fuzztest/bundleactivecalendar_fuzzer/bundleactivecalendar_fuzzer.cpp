@@ -45,7 +45,8 @@ constexpr int32_t COUNT = 11;
     GET_MILLISECONDS,
     TRUNCATE_TO_CUSTOM,
     TEST_BUNDLE_CALENDAR,
-    MAX_OP};
+    MAX_OP
+};
 
 // 1. 提取：处理所有 Truncate 相关的操作
 void HandleCalendarTruncate(BundleActiveCalendar& calendar, CalendarOp op, FuzzedDataProvider& provider)
@@ -106,13 +107,13 @@ void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
     CalendarOp op = static_cast<CalendarOp>(operation);
 
     // 核心改造：使用 if-else 将任务分发给不同的子函数
-    if (op == CalendarOp::TRUNCATE_TO_CUSTOM || 
+    if (op == CalendarOp::TRUNCATE_TO_CUSTOM ||
        (op >= CalendarOp::TRUNCATE_TO_DAY && op <= CalendarOp::TRUNCATE_TO_YEAR)) {
         HandleCalendarTruncate(calendar, op, provider);
-    } 
+    }
     else if (op >= CalendarOp::INCREASE_DAYS && op <= CalendarOp::INCREASE_YEARS) {
         HandleCalendarIncrease(calendar, op, provider);
-    } 
+    }
     else {
         // 剩下的少数几个 case 直接留在主函数里，或者也可以提一个 HandleCalendarMisc
         switch (op) {
