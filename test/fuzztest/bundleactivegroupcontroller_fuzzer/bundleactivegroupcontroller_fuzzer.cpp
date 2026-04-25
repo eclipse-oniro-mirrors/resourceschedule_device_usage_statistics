@@ -53,6 +53,9 @@ constexpr int32_t FUZZ_CODE_MAX = 18;
 // Magic numbers used for testing undefined event IDs
 constexpr int32_t kUnmatchedEventId = 9999;
 
+// Magic number for default delay in SendEvent/SendCheckBundleMsg
+constexpr uint32_t kDefaultDelay = 0;
+
 /* -------------------------------------------------------
  * Init helper: ensure controller + handler are ready
  * Called at the start of every test that needs bundleUserHistory_
@@ -321,24 +324,24 @@ bool GroupControllerHandlerProcessEventFuzzTest(FuzzedDataProvider* fdp)
     }
 
     // Trigger MSG_ONE_TIME_CHECK_BUNDLE_STATE via SendEvent (triggers ProcessEvent -> MSG_ONE_TIME_CHECK_BUNDLE_STATE branch)
-    handler->SendEvent(BundleActiveGroupHandler::MSG_ONE_TIME_CHECK_BUNDLE_STATE, handlerObjPtr, 0);
+    handler->SendEvent(BundleActiveGroupHandler::MSG_ONE_TIME_CHECK_BUNDLE_STATE, handlerObjPtr, kDefaultDelay);
 
     // Trigger MSG_CHECK_IDLE_STATE via SendEvent (triggers ProcessEvent -> MSG_CHECK_IDLE_STATE branch)
-    handler->SendEvent(BundleActiveGroupHandler::MSG_CHECK_IDLE_STATE, handlerObjPtr, 0);
+    handler->SendEvent(BundleActiveGroupHandler::MSG_CHECK_IDLE_STATE, handlerObjPtr, kDefaultDelay);
 
     // Trigger MSG_CHECK_DEFAULT_BUNDLE_STATE via SendEvent
-    handler->SendEvent(BundleActiveGroupHandler::MSG_CHECK_DEFAULT_BUNDLE_STATE, handlerObjPtr, 0);
+    handler->SendEvent(BundleActiveGroupHandler::MSG_CHECK_DEFAULT_BUNDLE_STATE, handlerObjPtr, kDefaultDelay);
 
     // Trigger MSG_CHECK_NOTIFICATION_SEEN_BUNDLE_STATE via SendCheckBundleMsg
     handler->SendCheckBundleMsg(BundleActiveGroupHandler::MSG_CHECK_NOTIFICATION_SEEN_BUNDLE_STATE,
-        handlerObjPtr, 0);
+        handlerObjPtr, kDefaultDelay);
 
     // Trigger MSG_CHECK_SYSTEM_INTERACTIVE_BUNDLE_STATE via SendCheckBundleMsg
     handler->SendCheckBundleMsg(BundleActiveGroupHandler::MSG_CHECK_SYSTEM_INTERACTIVE_BUNDLE_STATE,
-        handlerObjPtr, 0);
+        handlerObjPtr, kDefaultDelay);
 
     // Trigger default case in ProcessEvent (unknown eventId)
-    handler->SendEvent(kUnmatchedEventId, handlerObjPtr, 0);
+    handler->SendEvent(kUnmatchedEventId, handlerObjPtr, kDefaultDelay);
 
     // Test RemoveEvent (removes pending tasks for a message type)
     handler->RemoveEvent(BundleActiveGroupHandler::MSG_CHECK_DEFAULT_BUNDLE_STATE);
@@ -349,14 +352,14 @@ bool GroupControllerHandlerProcessEventFuzzTest(FuzzedDataProvider* fdp)
 
     // Test RemoveCheckBundleMsg
     std::string msgKey = handler->GetMsgKey(BundleActiveGroupHandler::MSG_CHECK_DEFAULT_BUNDLE_STATE,
-        handlerObjPtr, 0);
+        handlerObjPtr, kDefaultDelay);
     handler->RemoveCheckBundleMsg(msgKey);
     handler->RemoveCheckBundleMsg("non_existent_key");  // no-op path
 
     // Test GetMsgKey with nullptr -> returns ""
     std::shared_ptr<BundleActiveGroupHandlerObject> nullHandlerObj = nullptr;
     std::string emptyKey = handler->GetMsgKey(
-        BundleActiveGroupHandler::MSG_CHECK_DEFAULT_BUNDLE_STATE, nullHandlerObj, 0);
+        BundleActiveGroupHandler::MSG_CHECK_DEFAULT_BUNDLE_STATE, nullHandlerObj, kDefaultDelay);
     (void) emptyKey;  // unused but exercises the nullptr check
 
     return true;

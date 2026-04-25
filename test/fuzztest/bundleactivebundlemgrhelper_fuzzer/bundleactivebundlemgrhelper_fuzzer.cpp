@@ -44,6 +44,16 @@ constexpr int32_t FUZZ_CODE_MAX = 13;
 constexpr int32_t kFlagCodeRangeMax = 3;
 constexpr int32_t kBundleFlagCodeRangeMax = 2;
 
+// Magic number for loop count in Connect failure path test
+constexpr int32_t kConnectRetryCount = 3;
+
+// Magic numbers for bundle name cache test
+constexpr int32_t kBundleCacheCountMax = 5;
+constexpr int32_t kUidInsertCountMax = 3;
+
+// Magic number for invalid user ID in system event test
+constexpr int32_t kInvalidUserId = -1;
+
 /* -------------------------------------------------------
  * Helper: ensure BundleActiveGroupController is initialized
  * (which indirectly initializes BundleActiveBundleMgrHelper via its dependencies)
@@ -202,7 +212,7 @@ bool BundleMgrIsLauncherAppCacheHitFuzzTest(FuzzedDataProvider* fdp)
 
     // Pre-fill cache with several bundle names
     std::vector<std::string> bundleNames;
-    int count = fdp->ConsumeIntegralInRange(1, 5);
+    int count = fdp->ConsumeIntegralInRange(1, kBundleCacheCountMax);
     for (int i = 0; i < count; ++i) {
         bundleNames.push_back(fdp->ConsumeRandomLengthString());
     }
@@ -236,10 +246,10 @@ bool BundleMgrIsLauncherAppSystemEventFuzzTest(FuzzedDataProvider* /*fdp*/)
 {
     // These are the system event bundle names defined in bundle_active_constant.h
     // and inserted in InitSystemEvent()
-    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.lock", -1);
-    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.unlock", -1);
-    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.sleep", -1);
-    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.wakeup", -1);
+    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.lock", kInvalidUserId);
+    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.unlock", kInvalidUserId);
+    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.sleep", kInvalidUserId);
+    BundleActiveBundleMgrHelper::GetInstance()->IsLauncherApp("com.system_operation.wakeup", kInvalidUserId);
     return true;
 }
 
@@ -260,7 +270,7 @@ bool BundleMgrInsertAndGetUidSetFuzzTest(FuzzedDataProvider* fdp)
     std::set<int32_t> uidSet = BundleActiveBundleMgrHelper::GetInstance()->GetPackageUidSet(bundleName);
 
     // Insert more UIDs
-    int moreCount = fdp->ConsumeIntegralInRange(0, 3);
+    int moreCount = fdp->ConsumeIntegralInRange(0, kUidInsertCountMax);
     for (int i = 0; i < moreCount; ++i) {
         int32_t anotherUid = fdp->ConsumeIntegral<int32_t>();
         BundleActiveBundleMgrHelper::GetInstance()->InsertPackageUid(bundleName, anotherUid);
@@ -287,7 +297,7 @@ bool BundleMgrDeletePackageUidFuzzTest(FuzzedDataProvider* fdp)
     int32_t userId = fdp->ConsumeIntegral<int32_t>();
 
     // Insert several UIDs first
-    int uidCount = fdp->ConsumeIntegralInRange(1, 5);
+    int uidCount = fdp->ConsumeIntegralInRange(1, kBundleCacheCountMax);
     for (int i = 0; i < uidCount; ++i) {
         BundleActiveBundleMgrHelper::GetInstance()->InsertPackageUid(bundleName, i);
     }
@@ -364,7 +374,7 @@ bool BundleMgrConnectFailureFuzzTest(FuzzedDataProvider* fdp)
 
     // Call multiple times to hit "already connected" path
     std::string bundleName;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < kConnectRetryCount; ++i) {
         BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(0, bundleName);
     }
 

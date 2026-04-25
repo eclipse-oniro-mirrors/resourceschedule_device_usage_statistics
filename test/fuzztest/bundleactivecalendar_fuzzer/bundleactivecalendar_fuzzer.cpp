@@ -39,6 +39,8 @@ constexpr int32_t FUZZ_CODE_MAX = 8;
 
 // Magic numbers for calendar operation test ranges
 constexpr int64_t kIncreaseValueMax = 100;
+constexpr int64_t kIncreaseValueOne = 1;
+constexpr int64_t kIncreaseValueZero = 0;
 
 /* =============================================================
  *  Test 0: Default constructor + parameterized constructor
@@ -212,17 +214,17 @@ bool CalendarEdgeCasesFuzzTest(FuzzedDataProvider* fdp)
     cal.TruncateToWeek();
     cal.TruncateToMonth();
     cal.TruncateToYear();
-    cal.IncreaseDays(1);
-    cal.IncreaseWeeks(1);
-    cal.IncreaseMonths(1);
-    cal.IncreaseYears(1);
+    cal.IncreaseDays(kIncreaseValueOne);
+    cal.IncreaseWeeks(kIncreaseValueOne);
+    cal.IncreaseMonths(kIncreaseValueOne);
+    cal.IncreaseYears(kIncreaseValueOne);
     (void)cal.GetMilliseconds();
 
     // Zero Increase
-    cal.IncreaseDays(0);
-    cal.IncreaseWeeks(0);
-    cal.IncreaseMonths(0);
-    cal.IncreaseYears(0);
+    cal.IncreaseDays(kIncreaseValueZero);
+    cal.IncreaseWeeks(kIncreaseValueZero);
+    cal.IncreaseMonths(kIncreaseValueZero);
+    cal.IncreaseYears(kIncreaseValueZero);
 
     return true;
 }

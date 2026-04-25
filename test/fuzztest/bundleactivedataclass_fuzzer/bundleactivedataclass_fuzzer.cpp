@@ -46,6 +46,9 @@ constexpr int64_t kTsOffset4 = 4;
 constexpr int64_t kTsOffset5 = 5;
 constexpr int64_t kTsOffset6 = 6;
 
+// Magic number for hours vector size in HighFrequencyPeriod
+constexpr int32_t kHoursVecSizeMax = 24;
+
 /* =============================================================
  *  BundleActivePackageStats
  * ============================================================= */
@@ -241,7 +244,7 @@ bool HighFrequencyPeriodFuzzTest(FuzzedDataProvider* fdp)
 
     // Parameterized constructor
     std::string bundleName = fdp->ConsumeRandomLengthString();
-    int32_t vecSize        = fdp->ConsumeIntegralInRange<int32_t>(0, 24);
+    int32_t vecSize        = fdp->ConsumeIntegralInRange<int32_t>(0, kHoursVecSizeMax);
     std::vector<int32_t> hours;
     for (int32_t i = 0; i < vecSize; ++i) {
         hours.push_back(fdp->ConsumeIntegral<int32_t>());

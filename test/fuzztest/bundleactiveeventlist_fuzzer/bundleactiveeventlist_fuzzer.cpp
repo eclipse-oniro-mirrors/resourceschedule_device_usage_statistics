@@ -47,6 +47,7 @@ constexpr int32_t kTimestampMultiplier10 = 10;
 constexpr int32_t kTimestampMultiplier5 = 5;
 constexpr int32_t kTimestampMultiplier7 = 7;
 constexpr int64_t kTimestampOffset100 = 100;
+constexpr int32_t kTimestampDivider2 = 2;
 
 /* Build a fuzzed BundleActiveEvent */
 static BundleActiveEvent BuildFuzzEvent(FuzzedDataProvider* fdp) {
@@ -95,7 +96,7 @@ bool EventListInsertSortedFuzzTest(FuzzedDataProvider* fdp) {
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
     for (int32_t i = 0; i < count; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i;  // monotonically increasing
+        ev.timeStamp_ = baseTs + i * kTimestampOffset1;  // monotonically increasing
         list.Insert(ev);
     }
     (void)list.Size();
@@ -188,7 +189,7 @@ bool EventListComplexFuzzTest(FuzzedDataProvider* fdp) {
         list.Insert(ev);
     }
 
-    (void)list.FindBestIndex(baseTs + count * kTimestampMultiplier7 / 2);
+    (void)list.FindBestIndex(baseTs + count * kTimestampMultiplier7 / kTimestampDivider2);
     (void)list.Size();
 
     BundleActiveEventList other;
@@ -286,13 +287,13 @@ bool EventListStressFuzzTest(FuzzedDataProvider* fdp) {
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(5, 20);
     for (int32_t i = 0; i < count; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i;
+        ev.timeStamp_ = baseTs + i * kTimestampOffset1;
         list.Insert(ev);
     }
 
     // Query at exact boundary positions
     for (int32_t i = 0; i <= count; ++i) {
-        (void)list.FindBestIndex(baseTs + i);
+        (void)list.FindBestIndex(baseTs + i * kTimestampOffset1);
     }
 
     BundleActiveEventList merged;
