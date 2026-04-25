@@ -25,6 +25,7 @@ namespace DeviceUsageStats {
 namespace {
 constexpr int32_t MAX_STRING_LENGTH = 128;
 constexpr int32_t MAX_OPERATIONS = 30;
+constexpr int32_t MAX_NUM = 100;
 
 void FuzzPackageStatsUpdate(FuzzedDataProvider &provider)
 {
@@ -206,7 +207,7 @@ void FuzzPackageStatsEdgeCases(FuzzedDataProvider &provider)
     stats.IncrementTimeUsed(INT64_MAX);
     stats.IncrementServiceTimeUsed(INT64_MAX);
 
-    for (int32_t i = 0; i < 100; ++i) {
+    for (int32_t i = 0; i < MAX_NUM; ++i) {
         stats.IncrementBundleLaunchedCount();
     }
 }

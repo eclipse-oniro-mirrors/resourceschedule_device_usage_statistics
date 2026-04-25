@@ -15,9 +15,6 @@
 
 #include "test_fuzzer.h"
 
-#include <stddef.h>
-#include <stdint.h>
-
 const int FUZZ_DATA_LEN = 3;
 const int FUZZ_FST_DATA = 0;
 const int FUZZ_SND_DATA = 1;

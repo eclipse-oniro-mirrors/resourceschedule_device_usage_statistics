@@ -25,6 +25,7 @@ namespace OHOS {
 namespace DeviceUsageStats {
 namespace {
 constexpr size_t MAX_STRING_LENGTH = 128;
+constexpr int32_t MAX_NUM = 32;
 constexpr size_t MAX_PATH_SUFFIX_LENGTH = 64;
 constexpr int64_t MIN_TIMESTAMP = -86400000LL;
 constexpr int64_t MAX_TIMESTAMP = 4102444800000LL;
@@ -53,7 +54,7 @@ void FuzzNumericHelpers(FuzzedDataProvider &provider)
     std::string rawString = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
     std::string numericString = std::to_string(provider.ConsumeIntegral<int64_t>());
     if (provider.ConsumeBool()) {
-        numericString += provider.ConsumeRandomLengthString(MAX_STRING_LENGTH / 4);
+        numericString += provider.ConsumeRandomLengthString(MAX_NUM);
     }
 
     (void)BundleActiveUtil::StringToInt32(rawString);

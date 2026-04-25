@@ -12,13 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#include <cstdint>
-#include <unistd.h>
-#include <climits>
-#include <cstdio>
-#include <cstdlib>
-#include <fcntl.h>
-
+#ifndef BUNDLE_ACTIVE_PACKAGE_STATS_FUZZER_H
+#define BUNDLE_ACTIVE_PACKAGE_STATS_FUZZER_H
+#define FUZZ_PROJECT_NAME "bundleactivepackagestats_fuzzer"
 #define FUZZ_PROJECT_NAME "test_fuzzer"
+#endif
 

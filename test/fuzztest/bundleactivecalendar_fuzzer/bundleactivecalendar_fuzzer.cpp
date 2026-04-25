@@ -28,6 +28,7 @@ namespace DeviceUsageStats {
 namespace {
 constexpr int32_t MAX_EVENTS = 50;
 constexpr int32_t MAX_STATS = 20;
+constexpr int32_t MAX_SIZE = 64;
 
 void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
 {
@@ -39,48 +40,63 @@ void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
     }
 
     int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, 11);
-    switch (operation) {
-        case 0:
-            calendar.TruncateToDay();
-            break;
-        case 1:
-            calendar.TruncateToWeek();
-            break;
-        case 2:
-            calendar.TruncateToMonth();
-            break;
-        case 3:
-            calendar.TruncateToYear();
-            break;
-        case 4:
-            calendar.IncreaseDays(provider.ConsumeIntegral<int64_t>());
-            break;
-        case 5:
-            calendar.IncreaseWeeks(provider.ConsumeIntegral<int64_t>());
-            break;
-        case 6:
-            calendar.IncreaseMonths(provider.ConsumeIntegral<int64_t>());
-            break;
-        case 7:
-            calendar.IncreaseYears(provider.ConsumeIntegral<int64_t>());
-            break;
-        case 8:
-            calendar.SetMilliseconds(provider.ConsumeIntegral<int64_t>());
-            break;
-        case 9:
-            calendar.GetMilliseconds();
-            break;
-        case 10:
-            calendar.TruncateTo(provider.ConsumeIntegralInRange<int32_t>(0, 4));
-            break;
-        case 11: {
-            BundleActiveCalendar calendar2(provider.ConsumeIntegral<int64_t>());
-            calendar2.TruncateToDay();
-            calendar.IncreaseDays(1);
-            break;
-        }
-        default:
-            break;
+    enum class CalendarOp : uint8_t {
+    TRUNCATE_TO_DAY = 0,
+    TRUNCATE_TO_WEEK,
+    TRUNCATE_TO_MONTH,
+    TRUNCATE_TO_YEAR,
+    INCREASE_DAYS,
+    INCREASE_WEEKS,
+    INCREASE_MONTHS,
+    INCREASE_YEARS,
+    SET_MILLISECONDS,
+    GET_MILLISECONDS,
+    TRUNCATE_TO_CUSTOM,
+    TEST_BUNDLE_CALENDAR, 
+    MAX_OP               
+};
+    switch (static_cast<CalendarOp>(operation)) {
+    case CalendarOp::TRUNCATE_TO_DAY:
+        calendar.TruncateToDay();
+        break;
+    case CalendarOp::TRUNCATE_TO_WEEK:
+        calendar.TruncateToWeek();
+        break;
+    case CalendarOp::TRUNCATE_TO_MONTH:
+        calendar.TruncateToMonth();
+        break;
+    case CalendarOp::TRUNCATE_TO_YEAR:
+        calendar.TruncateToYear();
+        break;
+    case CalendarOp::INCREASE_DAYS:
+        calendar.IncreaseDays(provider.ConsumeIntegral<int64_t>());
+        break;
+    case CalendarOp::INCREASE_WEEKS:
+        calendar.IncreaseWeeks(provider.ConsumeIntegral<int64_t>());
+        break;
+    case CalendarOp::INCREASE_MONTHS:
+        calendar.IncreaseMonths(provider.ConsumeIntegral<int64_t>());
+        break;
+    case CalendarOp::INCREASE_YEARS:
+        calendar.IncreaseYears(provider.ConsumeIntegral<int64_t>());
+        break;
+    case CalendarOp::SET_MILLISECONDS:
+        calendar.SetMilliseconds(provider.ConsumeIntegral<int64_t>());
+        break;
+    case CalendarOp::GET_MILLISECONDS:
+        calendar.GetMilliseconds();
+        break;
+    case CalendarOp::TRUNCATE_TO_CUSTOM:
+        calendar.TruncateTo(provider.ConsumeIntegralInRange<int32_t>(0, 4));
+        break;
+    case CalendarOp::TEST_BUNDLE_CALENDAR: {
+        BundleActiveCalendar calendar2(provider.ConsumeIntegral<int64_t>());
+        calendar2.TruncateToDay();
+        calendar.IncreaseDays(1);
+        break;
+    }
+    default:
+        break;
     }
 }
 
@@ -91,7 +107,7 @@ void FuzzBundleActiveEventList(FuzzedDataProvider &provider)
     int32_t eventCount = provider.ConsumeIntegralInRange<int32_t>(0, MAX_EVENTS);
     for (int32_t i = 0; i < eventCount; ++i) {
         BundleActiveEvent event;
-        event.bundleName_ = provider.ConsumeRandomLengthString(64);
+        event.bundleName_ = provider.ConsumeRandomLengthString(MAX_SIZE);
         event.timeStamp_ = provider.ConsumeIntegral<int64_t>();
         event.eventId_ = provider.ConsumeIntegralInRange<int32_t>(
             BundleActiveEvent::ABILITY_FOREGROUND, BundleActiveEvent::SYSTEM_WAKEUP);
@@ -105,7 +121,7 @@ void FuzzBundleActiveEventList(FuzzedDataProvider &provider)
     int32_t event2Count = provider.ConsumeIntegralInRange<int32_t>(0, MAX_EVENTS);
     for (int32_t i = 0; i < event2Count; ++i) {
         BundleActiveEvent event;
-        event.bundleName_ = provider.ConsumeRandomLengthString(64);
+        event.bundleName_ = provider.ConsumeRandomLengthString(MAX_SIZE);
         event.timeStamp_ = provider.ConsumeIntegral<int64_t>();
         event.eventId_ = provider.ConsumeIntegralInRange<int32_t>(
             BundleActiveEvent::ABILITY_FOREGROUND, BundleActiveEvent::SYSTEM_WAKEUP);
@@ -126,7 +142,7 @@ void FuzzBundleActiveStatsCombinerPackageStats(FuzzedDataProvider &provider)
 
     int32_t statsCount = provider.ConsumeIntegralInRange<int32_t>(0, MAX_STATS);
     for (int32_t i = 0; i < statsCount; ++i) {
-        std::string bundleName = provider.ConsumeRandomLengthString(64);
+        std::string bundleName = provider.ConsumeRandomLengthString(MAX_SIZE);
         if (bundleName.empty()) {
             bundleName = "com.example.test";
         }
@@ -156,7 +172,7 @@ void FuzzBundleActiveStatsCombinerEvent(FuzzedDataProvider &provider)
     int32_t eventCount = provider.ConsumeIntegralInRange<int32_t>(0, MAX_STATS);
     for (int32_t i = 0; i < eventCount; ++i) {
         BundleActiveEvent event;
-        event.bundleName_ = provider.ConsumeRandomLengthString(64);
+        event.bundleName_ = provider.ConsumeRandomLengthString(MAX_SIZE);
         if (event.bundleName_.empty()) {
             event.bundleName_ = "com.example.test";
         }
@@ -181,7 +197,7 @@ void FuzzBundleActivePeriodStats(FuzzedDataProvider &provider)
 
     int32_t statsCount = provider.ConsumeIntegralInRange<int32_t>(0, MAX_STATS);
     for (int32_t i = 0; i < statsCount; ++i) {
-        std::string bundleName = provider.ConsumeRandomLengthString(64);
+        std::string bundleName = provider.ConsumeRandomLengthString(MAX_SIZE);
         if (bundleName.empty()) {
             bundleName = "com.example.test";
         }
@@ -208,25 +224,25 @@ void FuzzBundleActiveEventStaticMethods(FuzzedDataProvider &provider)
 
     BundleActiveEvent event2(
         provider.ConsumeIntegral<int32_t>(),
-        provider.ConsumeRandomLengthString(64),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
         provider.ConsumeIntegral<int32_t>());
 
     BundleActiveEvent event3(
-        provider.ConsumeRandomLengthString(64),
-        provider.ConsumeRandomLengthString(64),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
         provider.ConsumeIntegral<int32_t>());
 
     BundleActiveEvent event4(
-        provider.ConsumeRandomLengthString(64),
-        provider.ConsumeRandomLengthString(64),
-        provider.ConsumeRandomLengthString(64),
-        provider.ConsumeRandomLengthString(64),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
         provider.ConsumeIntegral<int32_t>());
 
     BundleActiveEvent event5(
-        provider.ConsumeRandomLengthString(64),
-        provider.ConsumeRandomLengthString(64),
-        provider.ConsumeRandomLengthString(64),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
         provider.ConsumeIntegral<int32_t>(),
         provider.ConsumeIntegral<int64_t>(),
         provider.ConsumeIntegral<int32_t>(),
@@ -240,7 +256,7 @@ void FuzzBundleActiveEventStaticMethods(FuzzedDataProvider &provider)
 void FuzzBundleActiveFormRecordOperations(FuzzedDataProvider &provider)
 {
     BundleActiveFormRecord record1(
-        provider.ConsumeRandomLengthString(64),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
         provider.ConsumeIntegral<int32_t>(),
         provider.ConsumeIntegral<int64_t>(),
         provider.ConsumeIntegral<int64_t>(),
@@ -248,7 +264,7 @@ void FuzzBundleActiveFormRecordOperations(FuzzedDataProvider &provider)
         provider.ConsumeIntegral<int32_t>());
 
     BundleActiveFormRecord record2(
-        provider.ConsumeRandomLengthString(64),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
         provider.ConsumeIntegral<int32_t>(),
         provider.ConsumeIntegral<int64_t>(),
         provider.ConsumeIntegral<int64_t>(),
@@ -265,28 +281,28 @@ void FuzzBundleActiveFormRecordOperations(FuzzedDataProvider &provider)
 void FuzzBundleActiveModuleRecordOperations(FuzzedDataProvider &provider)
 {
     BundleActiveModuleRecord record1;
-    record1.bundleName_ = provider.ConsumeRandomLengthString(64);
-    record1.moduleName_ = provider.ConsumeRandomLengthString(64);
+    record1.bundleName_ = provider.ConsumeRandomLengthString(MAX_SIZE);
+    record1.moduleName_ = provider.ConsumeRandomLengthString(MAX_SIZE);
     record1.lastModuleUsedTime_ = provider.ConsumeIntegral<int64_t>();
     record1.launchedCount_ = provider.ConsumeIntegral<int32_t>();
 
     BundleActiveModuleRecord record2;
-    record2.bundleName_ = provider.ConsumeRandomLengthString(64);
-    record2.moduleName_ = provider.ConsumeRandomLengthString(64);
+    record2.bundleName_ = provider.ConsumeRandomLengthString(MAX_SIZE);
+    record2.moduleName_ = provider.ConsumeRandomLengthString(MAX_SIZE);
     record2.lastModuleUsedTime_ = provider.ConsumeIntegral<int64_t>();
     record2.launchedCount_ = provider.ConsumeIntegral<int32_t>();
 
     BundleActiveModuleRecord::cmp(record1, record2);
 
     record1.AddOrUpdateOneFormRecord(
-        provider.ConsumeRandomLengthString(64),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
         provider.ConsumeIntegral<int32_t>(),
         provider.ConsumeIntegral<int64_t>(),
         provider.ConsumeIntegral<int64_t>(),
         provider.ConsumeIntegral<int32_t>());
 
     record1.RemoveOneFormRecord(
-        provider.ConsumeRandomLengthString(64),
+        provider.ConsumeRandomLengthString(MAX_SIZE),
         provider.ConsumeIntegral<int32_t>(),
         provider.ConsumeIntegral<int64_t>());
 
