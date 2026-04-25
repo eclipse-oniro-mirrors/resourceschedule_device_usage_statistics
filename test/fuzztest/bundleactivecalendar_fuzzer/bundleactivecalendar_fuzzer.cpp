@@ -29,6 +29,9 @@ namespace {
 constexpr int32_t MAX_EVENTS = 50;
 constexpr int32_t MAX_STATS = 20;
 constexpr int32_t MAX_SIZE = 64;
+constexpr int32_t MAX_COUNT = 4;
+constexpr int32_t COUNT = 11;
+
     enum class CalendarOp : uint8_t {
     TRUNCATE_TO_DAY = 0,
     TRUNCATE_TO_WEEK,
@@ -41,21 +44,18 @@ constexpr int32_t MAX_SIZE = 64;
     SET_MILLISECONDS,
     GET_MILLISECONDS,
     TRUNCATE_TO_CUSTOM,
-    TEST_BUNDLE_CALENDAR, 
-    MAX_OP               
+    TEST_BUNDLE_CALENDAR,
+    MAX_OP           
 };
 
 void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
 {
     int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
     BundleActiveCalendar calendar(timeStamp);
-
     if (provider.ConsumeBool()) {
         calendar.ChangeToDebug();
     }
-
-    int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, 11);
-
+    int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, COUNT);
     switch (static_cast<CalendarOp>(operation)) {
         case CalendarOp::TRUNCATE_TO_DAY:
             calendar.TruncateToDay();
@@ -88,7 +88,7 @@ void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
             calendar.GetMilliseconds();
             break;
         case CalendarOp::TRUNCATE_TO_CUSTOM:
-            calendar.TruncateTo(provider.ConsumeIntegralInRange<int32_t>(0, 4));
+            calendar.TruncateTo(provider.ConsumeIntegralInRange<int32_t>(0, MAX_COUNT));
             break;
         case CalendarOp::TEST_BUNDLE_CALENDAR: {
             BundleActiveCalendar calendar2(provider.ConsumeIntegral<int64_t>());
