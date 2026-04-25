@@ -40,6 +40,10 @@ constexpr int32_t FUZZ_CODE_12 = 12; // InitLauncherAppMap
 constexpr int32_t FUZZ_CODE_13 = 13; // Connect failure path
 constexpr int32_t FUZZ_CODE_MAX = 13;
 
+// Magic numbers for random range boundaries
+constexpr int32_t kFlagCodeRangeMax = 3;
+constexpr int32_t kBundleFlagCodeRangeMax = 2;
+
 /* -------------------------------------------------------
  * Helper: ensure BundleActiveGroupController is initialized
  * (which indirectly initializes BundleActiveBundleMgrHelper via its dependencies)
@@ -90,7 +94,7 @@ bool BundleMgrGetApplicationInfoVariousFlagsFuzzTest(FuzzedDataProvider* fdp)
 {
     std::string appName = fdp->ConsumeRandomLengthString();
     int32_t userId = fdp->ConsumeIntegral<int32_t>();
-    int32_t flagCode = fdp->ConsumeIntegralInRange(0, 3);
+    int32_t flagCode = fdp->ConsumeIntegralInRange(0, kFlagCodeRangeMax);
 
     AppExecFwk::ApplicationFlag flag;
     switch (flagCode) {
@@ -150,7 +154,7 @@ bool BundleMgrGetBundleInfoFuzzTest(FuzzedDataProvider* fdp)
 {
     std::string bundleName = fdp->ConsumeRandomLengthString();
     int32_t userId = fdp->ConsumeIntegral<int32_t>();
-    int32_t flagCode = fdp->ConsumeIntegralInRange(0, 2);
+    int32_t flagCode = fdp->ConsumeIntegralInRange(0, kBundleFlagCodeRangeMax);
 
     AppExecFwk::BundleFlag flag;
     switch (flagCode) {

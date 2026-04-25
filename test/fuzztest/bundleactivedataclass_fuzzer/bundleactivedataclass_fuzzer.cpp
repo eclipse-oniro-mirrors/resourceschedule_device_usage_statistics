@@ -38,6 +38,14 @@ constexpr int32_t FUZZ_CODE_6  = 6;
 constexpr int32_t FUZZ_CODE_7  = 7;
 constexpr int32_t FUZZ_CODE_MAX = 7;
 
+// Magic numbers for timestamp offsets in Update() tests
+constexpr int64_t kTsOffset1 = 1;
+constexpr int64_t kTsOffset2 = 2;
+constexpr int64_t kTsOffset3 = 3;
+constexpr int64_t kTsOffset4 = 4;
+constexpr int64_t kTsOffset5 = 5;
+constexpr int64_t kTsOffset6 = 6;
+
 /* =============================================================
  *  BundleActivePackageStats
  * ============================================================= */
@@ -71,14 +79,14 @@ bool PackageStatsFuzzTest(FuzzedDataProvider* fdp)
     std::string abilityId = fdp->ConsumeRandomLengthString();
     int32_t uid           = fdp->ConsumeIntegral<int32_t>();
     stats1.Update(longTask, ts, eventId, abilityId, uid);
-    stats1.Update("", ts + 1, BundleActiveEvent::ABILITY_FOREGROUND, abilityId, uid);
-    stats1.Update("", ts + 2, BundleActiveEvent::ABILITY_BACKGROUND, abilityId, uid);
-    stats1.Update(longTask, ts + 3, BundleActiveEvent::LONG_TIME_TASK_STARTTED, abilityId, uid);
-    stats1.Update(longTask, ts + 4, BundleActiveEvent::LONG_TIME_TASK_ENDED, abilityId, uid);
+    stats1.Update("", ts + kTsOffset1, BundleActiveEvent::ABILITY_FOREGROUND, abilityId, uid);
+    stats1.Update("", ts + kTsOffset2, BundleActiveEvent::ABILITY_BACKGROUND, abilityId, uid);
+    stats1.Update(longTask, ts + kTsOffset3, BundleActiveEvent::LONG_TIME_TASK_STARTTED, abilityId, uid);
+    stats1.Update(longTask, ts + kTsOffset4, BundleActiveEvent::LONG_TIME_TASK_ENDED, abilityId, uid);
 
     // IncrementTimeUsed, IncrementServiceTimeUsed, IncrementBundleLaunchedCount
-    stats1.IncrementTimeUsed(ts + 5);
-    stats1.IncrementServiceTimeUsed(ts + 6);
+    stats1.IncrementTimeUsed(ts + kTsOffset5);
+    stats1.IncrementServiceTimeUsed(ts + kTsOffset6);
     stats1.IncrementBundleLaunchedCount();
 
     // ToString
@@ -169,7 +177,8 @@ bool FormRecordFuzzTest(FuzzedDataProvider* fdp)
     (void)eq2;
 
     // cmp
-    BundleActiveFormRecord frA, frB;
+    BundleActiveFormRecord frA;
+    BundleActiveFormRecord frB;
     frA.count_ = fdp->ConsumeIntegral<int32_t>();
     frB.count_ = fdp->ConsumeIntegral<int32_t>();
     bool cmpResult = BundleActiveFormRecord::cmp(frA, frB);

@@ -17,44 +17,54 @@
 
 #include <fuzzer/FuzzedDataProvider.h>
 
-#include "bundle_active_event_list.h"
 #include "bundle_active_event.h"
+#include "bundle_active_event_list.h"
 #include "fuzztest_helper.h"
 
 namespace OHOS {
 namespace DeviceUsageStats {
 
-constexpr int32_t FUZZ_CODE_0  = 0;
-constexpr int32_t FUZZ_CODE_1  = 1;
-constexpr int32_t FUZZ_CODE_2  = 2;
-constexpr int32_t FUZZ_CODE_3  = 3;
-constexpr int32_t FUZZ_CODE_4  = 4;
-constexpr int32_t FUZZ_CODE_5  = 5;
-constexpr int32_t FUZZ_CODE_6  = 6;
-constexpr int32_t FUZZ_CODE_7  = 7;
-constexpr int32_t FUZZ_CODE_8  = 8;
-constexpr int32_t FUZZ_CODE_9  = 9;
+constexpr int32_t FUZZ_CODE_0 = 0;
+constexpr int32_t FUZZ_CODE_1 = 1;
+constexpr int32_t FUZZ_CODE_2 = 2;
+constexpr int32_t FUZZ_CODE_3 = 3;
+constexpr int32_t FUZZ_CODE_4 = 4;
+constexpr int32_t FUZZ_CODE_5 = 5;
+constexpr int32_t FUZZ_CODE_6 = 6;
+constexpr int32_t FUZZ_CODE_7 = 7;
+constexpr int32_t FUZZ_CODE_8 = 8;
+constexpr int32_t FUZZ_CODE_9 = 9;
 constexpr int32_t FUZZ_CODE_MAX = 9;
+constexpr int32_t TIME_OFFSET_SHUTDOWN = 2;
+constexpr int32_t TIME_OFFSET_STARTUP = 3;
+
+// Magic numbers for FindBestIndex boundary test
+constexpr int64_t kTimeOffsetBoundary = 10;
+
+// Magic numbers for timestamp offset calculations
+constexpr int64_t kTimestampOffset1 = 1;
+constexpr int32_t kTimestampMultiplier10 = 10;
+constexpr int32_t kTimestampMultiplier5 = 5;
+constexpr int32_t kTimestampMultiplier7 = 7;
+constexpr int64_t kTimestampOffset100 = 100;
 
 /* Build a fuzzed BundleActiveEvent */
-static BundleActiveEvent BuildFuzzEvent(FuzzedDataProvider* fdp)
-{
+static BundleActiveEvent BuildFuzzEvent(FuzzedDataProvider* fdp) {
     BundleActiveEvent event;
-    event.bundleName_  = fdp->ConsumeRandomLengthString();
-    event.moduleName_  = fdp->ConsumeRandomLengthString();
+    event.bundleName_ = fdp->ConsumeRandomLengthString();
+    event.moduleName_ = fdp->ConsumeRandomLengthString();
     event.abilityName_ = fdp->ConsumeRandomLengthString();
-    event.abilityId_  = fdp->ConsumeRandomLengthString();
-    event.eventId_     = fdp->ConsumeIntegral<int32_t>();
-    event.timeStamp_   = fdp->ConsumeIntegral<int64_t>();
-    event.uid_         = fdp->ConsumeIntegral<int32_t>();
+    event.abilityId_ = fdp->ConsumeRandomLengthString();
+    event.eventId_ = fdp->ConsumeIntegral<int32_t>();
+    event.timeStamp_ = fdp->ConsumeIntegral<int64_t>();
+    event.uid_ = fdp->ConsumeIntegral<int32_t>();
     return event;
 }
 
 /* =============================================================
  *  Test 0: Default constructor + Size()
  * ============================================================= */
-bool EventListCtorSizeFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListCtorSizeFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList list;
     (void)list.Size();
     return true;
@@ -63,8 +73,7 @@ bool EventListCtorSizeFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 1: Clear() on empty and non-empty list
  * ============================================================= */
-bool EventListClearFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListClearFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList list;
     // Clear empty
     list.Clear();
@@ -80,8 +89,7 @@ bool EventListClearFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 2: Insert at the end (sorted order)
  * ============================================================= */
-bool EventListInsertSortedFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListInsertSortedFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList list;
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(1, 10);
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
@@ -97,8 +105,7 @@ bool EventListInsertSortedFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 3: Insert at front/middle (unsorted order)
  * ============================================================= */
-bool EventListInsertUnsortedFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListInsertUnsortedFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList list;
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(1, 10);
     for (int32_t i = 0; i < count; ++i) {
@@ -113,15 +120,14 @@ bool EventListInsertUnsortedFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 4: FindBestIndex with various timestamps
  * ============================================================= */
-bool EventListFindBestIndexFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListFindBestIndexFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList list;
     // Populate list first
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(1, 10);
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
     for (int32_t i = 0; i < count; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i * 10;
+        ev.timeStamp_ = baseTs + i * kTimestampMultiplier10;
         list.Insert(ev);
     }
     // Now query FindBestIndex with various timestamps
@@ -140,8 +146,7 @@ bool EventListFindBestIndexFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 5: Merge two non-empty lists
  * ============================================================= */
-bool EventListMergeFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListMergeFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList listA;
     BundleActiveEventList listB;
 
@@ -151,12 +156,12 @@ bool EventListMergeFuzzTest(FuzzedDataProvider* fdp)
 
     for (int32_t i = 0; i < countA; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i * 5;
+        ev.timeStamp_ = baseTs + i * kTimestampMultiplier5;
         listA.Insert(ev);
     }
     for (int32_t i = 0; i < countB; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + 100 + i * 5;
+        ev.timeStamp_ = baseTs + kTimestampOffset100 + i * kTimestampMultiplier5;
         listB.Insert(ev);
     }
 
@@ -172,19 +177,18 @@ bool EventListMergeFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 6: Complex mix - insert, find, merge, clear
  * ============================================================= */
-bool EventListComplexFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListComplexFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList list;
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
 
     int32_t count = fdp->ConsumeIntegralInRange<int32_t>(1, 8);
     for (int32_t i = 0; i < count; ++i) {
         BundleActiveEvent ev = BuildFuzzEvent(fdp);
-        ev.timeStamp_ = baseTs + i * 7;
+        ev.timeStamp_ = baseTs + i * kTimestampMultiplier7;
         list.Insert(ev);
     }
 
-    (void)list.FindBestIndex(baseTs + count * 7 / 2);
+    (void)list.FindBestIndex(baseTs + count * kTimestampMultiplier7 / 2);
     (void)list.Size();
 
     BundleActiveEventList other;
@@ -202,8 +206,7 @@ bool EventListComplexFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 7: Insert all BundleActiveEvent::SYSTEM_* events
  * ============================================================= */
-bool EventListSystemEventsFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListSystemEventsFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList list;
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
 
@@ -211,21 +214,21 @@ bool EventListSystemEventsFuzzTest(FuzzedDataProvider* fdp)
     ev1.bundleName_ = fdp->ConsumeRandomLengthString();
     list.Insert(ev1);
 
-    BundleActiveEvent ev2(BundleActiveEvent::USER_INTERACTIVE, baseTs + 1);
+    BundleActiveEvent ev2(BundleActiveEvent::USER_INTERACTIVE, baseTs + kTimestampOffset1);
     ev2.bundleName_ = fdp->ConsumeRandomLengthString();
     list.Insert(ev2);
 
-    BundleActiveEvent ev3(BundleActiveEvent::SHUTDOWN, baseTs + 2);
+    BundleActiveEvent ev3(BundleActiveEvent::SHUTDOWN, baseTs + TIME_OFFSET_SHUTDOWN);
     ev3.bundleName_ = fdp->ConsumeRandomLengthString();
     list.Insert(ev3);
 
-    BundleActiveEvent ev4(BundleActiveEvent::STARTUP, baseTs + 3);
+    BundleActiveEvent ev4(BundleActiveEvent::STARTUP, baseTs + TIME_OFFSET_STARTUP);
     ev4.bundleName_ = fdp->ConsumeRandomLengthString();
     list.Insert(ev4);
 
     (void)list.Size();
     (void)list.FindBestIndex(baseTs);
-    (void)list.FindBestIndex(baseTs + 10);
+    (void)list.FindBestIndex(baseTs + kTimeOffsetBoundary);
 
     list.Clear();
     return true;
@@ -234,8 +237,7 @@ bool EventListSystemEventsFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 8: Edge cases - extreme timestamps, zero uid
  * ============================================================= */
-bool EventListEdgeCasesFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListEdgeCasesFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList list;
 
     // Insert with zero values
@@ -277,8 +279,7 @@ bool EventListEdgeCasesFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 9: Stress - many inserts, FindBestIndex on boundary
  * ============================================================= */
-bool EventListStressFuzzTest(FuzzedDataProvider* fdp)
-{
+bool EventListStressFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventList list;
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
 
@@ -303,8 +304,7 @@ bool EventListStressFuzzTest(FuzzedDataProvider* fdp)
 /* -------------------------------------------------------
  * Dispatch
  * ------------------------------------------------------- */
-void FuzzEventList(FuzzedDataProvider& fdp)
-{
+void FuzzEventList(FuzzedDataProvider& fdp) {
     int code = fdp.ConsumeIntegralInRange(FUZZ_CODE_0, FUZZ_CODE_MAX);
     switch (code) {
         case FUZZ_CODE_0:
@@ -342,12 +342,11 @@ void FuzzEventList(FuzzedDataProvider& fdp)
     }
 }
 
-} // namespace DeviceUsageStats
-} // namespace OHOS
+}  // namespace DeviceUsageStats
+}  // namespace OHOS
 
 /* Fuzzer entry point */
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
-{
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     OHOS::DelayedSingleton<OHOS::DeviceUsageStats::FuzztestHelper>::GetInstance()->NativeTokenGet();
 
     FuzzedDataProvider fdp(data, size);

@@ -37,6 +37,9 @@ constexpr int32_t FUZZ_CODE_7  = 7;
 constexpr int32_t FUZZ_CODE_8  = 8;
 constexpr int32_t FUZZ_CODE_MAX = 8;
 
+// Magic numbers for calendar operation test ranges
+constexpr int64_t kIncreaseValueMax = 100;
+
 /* =============================================================
  *  Test 0: Default constructor + parameterized constructor
  * ============================================================= */
@@ -175,7 +178,7 @@ bool CalendarChainOperationsFuzzTest(FuzzedDataProvider* fdp)
     cal.SetMilliseconds(ts);
 
     // Chain: IncreaseDays -> TruncateToDay -> IncreaseWeeks -> TruncateToWeek
-    int64_t incVal = fdp->ConsumeIntegralInRange<int64_t>(1, 100);
+    int64_t incVal = fdp->ConsumeIntegralInRange<int64_t>(1, kIncreaseValueMax);
     cal.IncreaseDays(incVal);
     (void)cal.GetMilliseconds();
     cal.TruncateToDay();

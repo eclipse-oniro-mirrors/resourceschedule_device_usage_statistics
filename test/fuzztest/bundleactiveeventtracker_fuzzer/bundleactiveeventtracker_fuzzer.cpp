@@ -17,29 +17,33 @@
 
 #include <fuzzer/FuzzedDataProvider.h>
 
-#include "bundle_active_event_tracker.h"
+#include "bundle_active_constant.h"
 #include "bundle_active_event.h"
 #include "bundle_active_event_stats.h"
-#include "bundle_active_constant.h"
+#include "bundle_active_event_tracker.h"
 #include "fuzztest_helper.h"
 
 namespace OHOS {
 namespace DeviceUsageStats {
 
-constexpr int32_t FUZZ_CODE_0  = 0;
-constexpr int32_t FUZZ_CODE_1  = 1;
-constexpr int32_t FUZZ_CODE_2  = 2;
-constexpr int32_t FUZZ_CODE_3  = 3;
-constexpr int32_t FUZZ_CODE_4  = 4;
-constexpr int32_t FUZZ_CODE_5  = 5;
-constexpr int32_t FUZZ_CODE_6  = 6;
+constexpr int32_t FUZZ_CODE_0 = 0;
+constexpr int32_t FUZZ_CODE_1 = 1;
+constexpr int32_t FUZZ_CODE_2 = 2;
+constexpr int32_t FUZZ_CODE_3 = 3;
+constexpr int32_t FUZZ_CODE_4 = 4;
+constexpr int32_t FUZZ_CODE_5 = 5;
+constexpr int32_t FUZZ_CODE_6 = 6;
 constexpr int32_t FUZZ_CODE_MAX = 6;
+constexpr int32_t kCycleDurationMs = 100;  // 每个时间（毫秒）
+constexpr int32_t kOffsetMs = 50;          // 时间偏移量（毫秒）
+
+// Magic number for empty tracker test time range
+constexpr int64_t kEmptyTrackerTimeRange = 1000;
 
 /* =============================================================
  *  Test 0: Default constructor (curStartTime_=0 path)
  * ============================================================= */
-bool TrackerCtorFuzzTest(FuzzedDataProvider* /*fdp*/)
-{
+bool TrackerCtorFuzzTest(FuzzedDataProvider* /*fdp*/) {
     BundleActiveEventTracker tracker;
     // Fields initialized: curStartTime_=0, lastEventTime_=0, duration_=0, count_=0
     return true;
@@ -48,8 +52,7 @@ bool TrackerCtorFuzzTest(FuzzedDataProvider* /*fdp*/)
 /* =============================================================
  *  Test 1: Update() with curStartTime_=0 (first call, count++ path)
  * ============================================================= */
-bool TrackerUpdateFirstCallFuzzTest(FuzzedDataProvider* fdp)
-{
+bool TrackerUpdateFirstCallFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventTracker tracker;
     int64_t ts = fdp->ConsumeIntegral<int64_t>();
     tracker.Update(ts);
@@ -60,8 +63,7 @@ bool TrackerUpdateFirstCallFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 2: Update() called twice (second call, curStartTime_!=0 path)
  * ============================================================= */
-bool TrackerUpdateSecondCallFuzzTest(FuzzedDataProvider* fdp)
-{
+bool TrackerUpdateSecondCallFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventTracker tracker;
     int64_t ts1 = fdp->ConsumeIntegral<int64_t>();
     int64_t ts2 = fdp->ConsumeIntegral<int64_t>();
@@ -74,8 +76,7 @@ bool TrackerUpdateSecondCallFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 3: CommitTime() with curStartTime_=0 (no-op branch)
  * ============================================================= */
-bool TrackerCommitTimeNoOpFuzzTest(FuzzedDataProvider* fdp)
-{
+bool TrackerCommitTimeNoOpFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventTracker tracker;
     int64_t ts = fdp->ConsumeIntegral<int64_t>();
     // curStartTime_=0, CommitTime should do nothing
@@ -86,8 +87,7 @@ bool TrackerCommitTimeNoOpFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 4: Update() then CommitTime() (curStartTime_!=0 branch)
  * ============================================================= */
-bool TrackerUpdateThenCommitFuzzTest(FuzzedDataProvider* fdp)
-{
+bool TrackerUpdateThenCommitFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventTracker tracker;
     int64_t ts1 = fdp->ConsumeIntegral<int64_t>();
     int64_t ts2 = fdp->ConsumeIntegral<int64_t>();
@@ -100,8 +100,7 @@ bool TrackerUpdateThenCommitFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 5: AddToEventStats with non-zero count/duration
  * ============================================================= */
-bool TrackerAddToEventStatsFuzzTest(FuzzedDataProvider* fdp)
-{
+bool TrackerAddToEventStatsFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventTracker tracker;
     int64_t ts1 = fdp->ConsumeIntegral<int64_t>();
     int64_t ts2 = fdp->ConsumeIntegral<int64_t>();
@@ -122,26 +121,25 @@ bool TrackerAddToEventStatsFuzzTest(FuzzedDataProvider* fdp)
 /* =============================================================
  *  Test 6: Stress - repeated Update/Commit cycles, AddToEventStats
  * ============================================================= */
-bool TrackerStressFuzzTest(FuzzedDataProvider* fdp)
-{
+bool TrackerStressFuzzTest(FuzzedDataProvider* fdp) {
     BundleActiveEventTracker tracker;
     int32_t cycles = fdp->ConsumeIntegralInRange<int32_t>(1, 10);
     int64_t baseTs = fdp->ConsumeIntegral<int64_t>();
 
     for (int32_t i = 0; i < cycles; ++i) {
-        tracker.Update(baseTs + i * 100);
-        tracker.CommitTime(baseTs + i * 100 + 50);
+        tracker.Update(baseTs + i * kCycleDurationMs);
+        tracker.CommitTime(baseTs + i * kCycleDurationMs + kOffsetMs);
     }
 
     std::vector<BundleActiveEventStats> statsList;
     tracker.AddToEventStats(statsList, BundleActiveEvent::SCREEN_INTERACTIVE,
-        baseTs, baseTs + cycles * 100);
+                            baseTs, baseTs + cycles * kCycleDurationMs);
 
     // Empty tracker - should not add entry
     BundleActiveEventTracker emptyTracker;
     std::vector<BundleActiveEventStats> emptyStatsList;
     emptyTracker.AddToEventStats(emptyStatsList, BundleActiveEvent::SCREEN_NON_INTERACTIVE,
-        baseTs, baseTs + 1000);
+                                 baseTs, baseTs + kEmptyTrackerTimeRange);
     (void)emptyStatsList;
     return true;
 }
@@ -149,8 +147,7 @@ bool TrackerStressFuzzTest(FuzzedDataProvider* fdp)
 /* -------------------------------------------------------
  * Dispatch
  * ------------------------------------------------------- */
-void FuzzEventTracker(FuzzedDataProvider& fdp)
-{
+void FuzzEventTracker(FuzzedDataProvider& fdp) {
     int code = fdp.ConsumeIntegralInRange(FUZZ_CODE_0, FUZZ_CODE_MAX);
     switch (code) {
         case FUZZ_CODE_0:
@@ -179,12 +176,11 @@ void FuzzEventTracker(FuzzedDataProvider& fdp)
     }
 }
 
-} // namespace DeviceUsageStats
-} // namespace OHOS
+}  // namespace DeviceUsageStats
+}  // namespace OHOS
 
 /* Fuzzer entry point */
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
-{
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     OHOS::DelayedSingleton<OHOS::DeviceUsageStats::FuzztestHelper>::GetInstance()->NativeTokenGet();
 
     FuzzedDataProvider fdp(data, size);
