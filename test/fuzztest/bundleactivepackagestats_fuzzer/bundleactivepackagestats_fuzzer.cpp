@@ -60,14 +60,20 @@ void FuzzPackageStatsTimeOperations(FuzzedDataProvider &provider)
     int32_t operationCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_OPERATIONS);
     for (int32_t i = 0; i < operationCount; ++i) {
         int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, 2);
-        switch (operation) {
-            case 0:
+        enum class StatsOp : uint8_t {
+        INCREMENT_TIME_USED = 0,     // 增加应用使用时间
+        INCREMENT_SERVICE_TIME_USED, // 增加服务使用时间
+        INCREMENT_LAUNCH_COUNT,      // 增加应用启动次数
+        MAX_OP                       // 用于限制 Fuzzer 的随机范围
+        };
+        switch (static_cast<StatsOp>(operation)) {
+            case StatsOp::INCREMENT_TIME_USED:
                 stats.IncrementTimeUsed(provider.ConsumeIntegral<int64_t>());
                 break;
-            case 1:
+            case StatsOp::INCREMENT_SERVICE_TIME_USED:
                 stats.IncrementServiceTimeUsed(provider.ConsumeIntegral<int64_t>());
                 break;
-            case 2:
+            case StatsOp::INCREMENT_LAUNCH_COUNT:
                 stats.IncrementBundleLaunchedCount();
                 break;
             default:
@@ -119,39 +125,48 @@ void FuzzPackageStatsMixedScenario(FuzzedDataProvider &provider)
     int32_t operationCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_OPERATIONS);
     for (int32_t i = 0; i < operationCount; ++i) {
         int32_t scenario = provider.ConsumeIntegralInRange<int32_t>(0, 5);
-        switch (scenario) {
-            case 0: {
+        enum class StatsScenario : uint8_t {
+        UPDATE_ABILITY_FOREGROUND = 0, // 更新 Ability 前台状态
+        UPDATE_ABILITY_BACKGROUND,     // 更新 Ability 后台状态
+        UPDATE_TASK_STARTED,           // 长时间任务开始
+        UPDATE_TASK_ENDED,             // 长时间任务结束
+        INCREMENT_TIME_USED,           // 增加使用时间
+        INCREMENT_LAUNCH_COUNT,        // 增加启动次数
+        MAX_SCENARIO                   // 用于限制 Fuzzer 的随机范围
+    };
+       switch (static_cast<StatsScenario>(scenario)) {
+            case StatsScenario::UPDATE_ABILITY_FOREGROUND: {
                 std::string abilityId = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
                 stats.Update("", provider.ConsumeIntegral<int64_t>(),
                     BundleActiveEvent::ABILITY_FOREGROUND, abilityId,
                     provider.ConsumeIntegral<int32_t>());
                 break;
             }
-            case 1: {
+            case StatsScenario::UPDATE_ABILITY_BACKGROUND: {
                 std::string abilityId = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
                 stats.Update("", provider.ConsumeIntegral<int64_t>(),
                     BundleActiveEvent::ABILITY_BACKGROUND, abilityId,
                     provider.ConsumeIntegral<int32_t>());
                 break;
             }
-            case 2: {
+            case StatsScenario::UPDATE_TASK_STARTED: {
                 std::string taskName = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
                 stats.Update(taskName, provider.ConsumeIntegral<int64_t>(),
                     BundleActiveEvent::LONG_TIME_TASK_STARTTED, "",
                     provider.ConsumeIntegral<int32_t>());
                 break;
             }
-            case 3: {
+            case StatsScenario::UPDATE_TASK_ENDED: {
                 std::string taskName = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
                 stats.Update(taskName, provider.ConsumeIntegral<int64_t>(),
                     BundleActiveEvent::LONG_TIME_TASK_ENDED, "",
                     provider.ConsumeIntegral<int32_t>());
                 break;
             }
-            case 4:
+            case StatsScenario::INCREMENT_TIME_USED:
                 stats.IncrementTimeUsed(provider.ConsumeIntegral<int64_t>());
                 break;
-            case 5:
+            case StatsScenario::INCREMENT_LAUNCH_COUNT:
                 stats.IncrementBundleLaunchedCount();
                 break;
             default:

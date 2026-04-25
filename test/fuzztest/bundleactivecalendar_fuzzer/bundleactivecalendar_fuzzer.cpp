@@ -29,17 +29,6 @@ namespace {
 constexpr int32_t MAX_EVENTS = 50;
 constexpr int32_t MAX_STATS = 20;
 constexpr int32_t MAX_SIZE = 64;
-
-void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
-{
-    int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
-    BundleActiveCalendar calendar(timeStamp);
-
-    if (provider.ConsumeBool()) {
-        calendar.ChangeToDebug();
-    }
-
-    int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, 11);
     enum class CalendarOp : uint8_t {
     TRUNCATE_TO_DAY = 0,
     TRUNCATE_TO_WEEK,
@@ -55,49 +44,61 @@ void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
     TEST_BUNDLE_CALENDAR, 
     MAX_OP               
 };
+
+void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
+{
+    int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
+    BundleActiveCalendar calendar(timeStamp);
+
+    if (provider.ConsumeBool()) {
+        calendar.ChangeToDebug();
+    }
+
+    int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, 11);
+
     switch (static_cast<CalendarOp>(operation)) {
-    case CalendarOp::TRUNCATE_TO_DAY:
-        calendar.TruncateToDay();
-        break;
-    case CalendarOp::TRUNCATE_TO_WEEK:
-        calendar.TruncateToWeek();
-        break;
-    case CalendarOp::TRUNCATE_TO_MONTH:
-        calendar.TruncateToMonth();
-        break;
-    case CalendarOp::TRUNCATE_TO_YEAR:
-        calendar.TruncateToYear();
-        break;
-    case CalendarOp::INCREASE_DAYS:
-        calendar.IncreaseDays(provider.ConsumeIntegral<int64_t>());
-        break;
-    case CalendarOp::INCREASE_WEEKS:
-        calendar.IncreaseWeeks(provider.ConsumeIntegral<int64_t>());
-        break;
-    case CalendarOp::INCREASE_MONTHS:
-        calendar.IncreaseMonths(provider.ConsumeIntegral<int64_t>());
-        break;
-    case CalendarOp::INCREASE_YEARS:
-        calendar.IncreaseYears(provider.ConsumeIntegral<int64_t>());
-        break;
-    case CalendarOp::SET_MILLISECONDS:
-        calendar.SetMilliseconds(provider.ConsumeIntegral<int64_t>());
-        break;
-    case CalendarOp::GET_MILLISECONDS:
-        calendar.GetMilliseconds();
-        break;
-    case CalendarOp::TRUNCATE_TO_CUSTOM:
-        calendar.TruncateTo(provider.ConsumeIntegralInRange<int32_t>(0, 4));
-        break;
-    case CalendarOp::TEST_BUNDLE_CALENDAR: {
-        BundleActiveCalendar calendar2(provider.ConsumeIntegral<int64_t>());
-        calendar2.TruncateToDay();
-        calendar.IncreaseDays(1);
-        break;
-    }
-    default:
-        break;
-    }
+        case CalendarOp::TRUNCATE_TO_DAY:
+            calendar.TruncateToDay();
+            break;
+        case CalendarOp::TRUNCATE_TO_WEEK:
+            calendar.TruncateToWeek();
+            break;
+        case CalendarOp::TRUNCATE_TO_MONTH:
+            calendar.TruncateToMonth();
+            break;
+        case CalendarOp::TRUNCATE_TO_YEAR:
+            calendar.TruncateToYear();
+            break;
+        case CalendarOp::INCREASE_DAYS:
+            calendar.IncreaseDays(provider.ConsumeIntegral<int64_t>());
+            break;
+        case CalendarOp::INCREASE_WEEKS:
+            calendar.IncreaseWeeks(provider.ConsumeIntegral<int64_t>());
+            break;
+        case CalendarOp::INCREASE_MONTHS:
+            calendar.IncreaseMonths(provider.ConsumeIntegral<int64_t>());
+            break;
+        case CalendarOp::INCREASE_YEARS:
+            calendar.IncreaseYears(provider.ConsumeIntegral<int64_t>());
+            break;
+        case CalendarOp::SET_MILLISECONDS:
+            calendar.SetMilliseconds(provider.ConsumeIntegral<int64_t>());
+            break;
+        case CalendarOp::GET_MILLISECONDS:
+            calendar.GetMilliseconds();
+            break;
+        case CalendarOp::TRUNCATE_TO_CUSTOM:
+            calendar.TruncateTo(provider.ConsumeIntegralInRange<int32_t>(0, 4));
+            break;
+        case CalendarOp::TEST_BUNDLE_CALENDAR: {
+            BundleActiveCalendar calendar2(provider.ConsumeIntegral<int64_t>());
+            calendar2.TruncateToDay();
+            calendar.IncreaseDays(1);
+            break;
+        }
+        default:
+            break;
+        }
 }
 
 void FuzzBundleActiveEventList(FuzzedDataProvider &provider)
