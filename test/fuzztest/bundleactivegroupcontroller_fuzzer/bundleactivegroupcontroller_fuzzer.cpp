@@ -324,7 +324,7 @@ bool GroupControllerHandlerProcessEventFuzzTest(FuzzedDataProvider* fdp)
         return true;
     }
 
-    // Trigger MSG_ONE_TIME_CHECK_BUNDLE_STATE via SendEvent (triggers ProcessEvent -> MSG_ONE_TIME_CHECK_BUNDLE_STATE branch)
+    // Trigger MSG_ONE_TIME_CHECK_BUNDLE_STATE via SendEvent
     handler->SendEvent(BundleActiveGroupHandler::MSG_ONE_TIME_CHECK_BUNDLE_STATE, handlerObjPtr, K_DEFAULT_DELAY);
 
     // Trigger MSG_CHECK_IDLE_STATE via SendEvent (triggers ProcessEvent -> MSG_CHECK_IDLE_STATE branch)
