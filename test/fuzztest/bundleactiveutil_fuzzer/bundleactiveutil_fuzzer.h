@@ -14,8 +14,5 @@
  */
 #ifndef BUNDLE_ACTIVE_UTIL_FUZZER_H
 #define BUNDLE_ACTIVE_UTIL_FUZZER_H
-
 #define FUZZ_PROJECT_NAME "bundleactiveutil_fuzzer"
-
 #endif
-

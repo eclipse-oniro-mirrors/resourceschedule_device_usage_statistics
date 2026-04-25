@@ -45,18 +45,12 @@ constexpr int32_t COUNT = 11;
     GET_MILLISECONDS,
     TRUNCATE_TO_CUSTOM,
     TEST_BUNDLE_CALENDAR,
-    MAX_OP           
-};
+    MAX_OP};
 
-void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
+// 1. 提取：处理所有 Truncate 相关的操作
+void HandleCalendarTruncate(BundleActiveCalendar& calendar, CalendarOp op, FuzzedDataProvider& provider)
 {
-    int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
-    BundleActiveCalendar calendar(timeStamp);
-    if (provider.ConsumeBool()) {
-        calendar.ChangeToDebug();
-    }
-    int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, COUNT);
-    switch (static_cast<CalendarOp>(operation)) {
+    switch (op) {
         case CalendarOp::TRUNCATE_TO_DAY:
             calendar.TruncateToDay();
             break;
@@ -69,6 +63,18 @@ void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
         case CalendarOp::TRUNCATE_TO_YEAR:
             calendar.TruncateToYear();
             break;
+        case CalendarOp::TRUNCATE_TO_CUSTOM:
+            calendar.TruncateTo(provider.ConsumeIntegralInRange<int32_t>(0, MAX_COUNT));
+            break;
+        default:
+            break;
+    }
+}
+
+// 2. 提取：处理所有 Increase 相关的操作
+void HandleCalendarIncrease(BundleActiveCalendar& calendar, CalendarOp op, FuzzedDataProvider& provider)
+{
+    switch (op) {
         case CalendarOp::INCREASE_DAYS:
             calendar.IncreaseDays(provider.ConsumeIntegral<int64_t>());
             break;
@@ -81,24 +87,51 @@ void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
         case CalendarOp::INCREASE_YEARS:
             calendar.IncreaseYears(provider.ConsumeIntegral<int64_t>());
             break;
-        case CalendarOp::SET_MILLISECONDS:
-            calendar.SetMilliseconds(provider.ConsumeIntegral<int64_t>());
-            break;
-        case CalendarOp::GET_MILLISECONDS:
-            calendar.GetMilliseconds();
-            break;
-        case CalendarOp::TRUNCATE_TO_CUSTOM:
-            calendar.TruncateTo(provider.ConsumeIntegralInRange<int32_t>(0, MAX_COUNT));
-            break;
-        case CalendarOp::TEST_BUNDLE_CALENDAR: {
-            BundleActiveCalendar calendar2(provider.ConsumeIntegral<int64_t>());
-            calendar2.TruncateToDay();
-            calendar.IncreaseDays(1);
-            break;
-        }
         default:
             break;
+    }
+}
+
+// 3. 瘦身后的主函数
+void FuzzBundleActiveCalendar(FuzzedDataProvider &provider)
+{
+    int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
+    BundleActiveCalendar calendar(timeStamp);
+
+    if (provider.ConsumeBool()) {
+        calendar.ChangeToDebug();
+    }
+
+    int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, COUNT);
+    CalendarOp op = static_cast<CalendarOp>(operation);
+
+    // 核心改造：使用 if-else 将任务分发给不同的子函数
+    if (op == CalendarOp::TRUNCATE_TO_CUSTOM || 
+       (op >= CalendarOp::TRUNCATE_TO_DAY && op <= CalendarOp::TRUNCATE_TO_YEAR)) {
+        HandleCalendarTruncate(calendar, op, provider);
+    } 
+    else if (op >= CalendarOp::INCREASE_DAYS && op <= CalendarOp::INCREASE_YEARS) {
+        HandleCalendarIncrease(calendar, op, provider);
+    } 
+    else {
+        // 剩下的少数几个 case 直接留在主函数里，或者也可以提一个 HandleCalendarMisc
+        switch (op) {
+            case CalendarOp::SET_MILLISECONDS:
+                calendar.SetMilliseconds(provider.ConsumeIntegral<int64_t>());
+                break;
+            case CalendarOp::GET_MILLISECONDS:
+                calendar.GetMilliseconds();
+                break;
+            case CalendarOp::TEST_BUNDLE_CALENDAR: {
+                BundleActiveCalendar calendar2(provider.ConsumeIntegral<int64_t>());
+                calendar2.TruncateToDay();
+                calendar.IncreaseDays(1);
+                break;
+            }
+            default:
+                break;
         }
+    }
 }
 
 void FuzzBundleActiveEventList(FuzzedDataProvider &provider)

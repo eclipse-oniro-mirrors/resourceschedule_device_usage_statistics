@@ -17,4 +17,3 @@
 #define FUZZ_PROJECT_NAME "bundleactivepackagestats_fuzzer"
 #define FUZZ_PROJECT_NAME "test_fuzzer"
 #endif
-

@@ -14,8 +14,5 @@
  */
 #ifndef BUNDLE_ACTIVE_GROUP_MAP_FUZZER_H
 #define BUNDLE_ACTIVE_GROUP_MAP_FUZZER_H
-
 #define FUZZ_PROJECT_NAME "bundleactivegroupmap_fuzzer"
-
 #endif
-
