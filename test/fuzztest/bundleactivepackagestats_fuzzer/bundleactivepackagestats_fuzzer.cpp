@@ -26,6 +26,9 @@ namespace {
 constexpr int32_t MAX_STRING_LENGTH = 128;
 constexpr int32_t MAX_OPERATIONS = 30;
 constexpr int32_t MAX_NUM = 100;
+constexpr int32_t MAX_COUNT = 20;
+constexpr int32_t COUNT = 2;
+constexpr int32_t OPERATION_COUNT = 5;
 
 void FuzzPackageStatsUpdate(FuzzedDataProvider &provider)
 {
@@ -59,7 +62,7 @@ void FuzzPackageStatsTimeOperations(FuzzedDataProvider &provider)
 
     int32_t operationCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_OPERATIONS);
     for (int32_t i = 0; i < operationCount; ++i) {
-        int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, 2);
+        int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, COUNT);
         enum class StatsOp : uint8_t {
         INCREMENT_TIME_USED = 0,     // 增加应用使用时间
         INCREMENT_SERVICE_TIME_USED, // 增加服务使用时间
@@ -87,7 +90,7 @@ void FuzzPackageStatsAbilityTracking(FuzzedDataProvider &provider)
     BundleActivePackageStats stats;
     stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
 
-    int32_t abilityCount = provider.ConsumeIntegralInRange<int32_t>(1, 20);
+    int32_t abilityCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_COUNT);
     for (int32_t i = 0; i < abilityCount; ++i) {
         std::string abilityId = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
         int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
@@ -103,7 +106,7 @@ void FuzzPackageStatsLongTimeTaskTracking(FuzzedDataProvider &provider)
     BundleActivePackageStats stats;
     stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
 
-    int32_t taskCount = provider.ConsumeIntegralInRange<int32_t>(1, 20);
+    int32_t taskCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_COUNT);
     for (int32_t i = 0; i < taskCount; ++i) {
         std::string taskName = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
         int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
@@ -113,7 +116,15 @@ void FuzzPackageStatsLongTimeTaskTracking(FuzzedDataProvider &provider)
         stats.Update(taskName, timeStamp, eventId, "", provider.ConsumeIntegral<int32_t>());
     }
 }
-
+enum class StatsScenario : uint8_t {
+        UPDATE_ABILITY_FOREGROUND = 0, // 更新 Ability 前台状态
+        UPDATE_ABILITY_BACKGROUND,     // 更新 Ability 后台状态
+        UPDATE_TASK_STARTED,           // 长时间任务开始
+        UPDATE_TASK_ENDED,             // 长时间任务结束
+        INCREMENT_TIME_USED,           // 增加使用时间
+        INCREMENT_LAUNCH_COUNT,        // 增加启动次数
+        MAX_SCENARIO                   // 用于限制 Fuzzer 的随机范围
+    };
 void FuzzPackageStatsMixedScenario(FuzzedDataProvider &provider)
 {
     BundleActivePackageStats stats;
@@ -125,16 +136,7 @@ void FuzzPackageStatsMixedScenario(FuzzedDataProvider &provider)
     int32_t operationCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_OPERATIONS);
     for (int32_t i = 0; i < operationCount; ++i) {
         int32_t scenario = provider.ConsumeIntegralInRange<int32_t>(0, 5);
-        enum class StatsScenario : uint8_t {
-        UPDATE_ABILITY_FOREGROUND = 0, // 更新 Ability 前台状态
-        UPDATE_ABILITY_BACKGROUND,     // 更新 Ability 后台状态
-        UPDATE_TASK_STARTED,           // 长时间任务开始
-        UPDATE_TASK_ENDED,             // 长时间任务结束
-        INCREMENT_TIME_USED,           // 增加使用时间
-        INCREMENT_LAUNCH_COUNT,        // 增加启动次数
-        MAX_SCENARIO                   // 用于限制 Fuzzer 的随机范围
-    };
-       switch (static_cast<StatsScenario>(scenario)) {
+        switch (static_cast<StatsScenario>(scenario)) {
             case StatsScenario::UPDATE_ABILITY_FOREGROUND: {
                 std::string abilityId = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
                 stats.Update("", provider.ConsumeIntegral<int64_t>(),
@@ -187,7 +189,7 @@ void FuzzPackageStatsCopyAndAssignment(FuzzedDataProvider &provider)
     stats1.totalInFrontTime_ = provider.ConsumeIntegral<int64_t>();
     stats1.userId_ = provider.ConsumeIntegral<int32_t>();
 
-    int32_t abilityCount = provider.ConsumeIntegralInRange<int32_t>(0, 5);
+    int32_t abilityCount = provider.ConsumeIntegralInRange<int32_t>(0, OPERATION_COUNT);
     for (int32_t i = 0; i < abilityCount; ++i) {
         stats1.abilities_[provider.ConsumeRandomLengthString(MAX_STRING_LENGTH)] =
             provider.ConsumeIntegral<int32_t>();
