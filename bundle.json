@@ -84,8 +84,15 @@
         }
       ],
       "test": [
-       "//foundation/resourceschedule/device_usage_statistics:test_all",
-       "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundle_fuzzer:BundleActiveEventFuzzTest"
+        "//foundation/resourceschedule/device_usage_statistics:test_all",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundle_fuzzer:BundleActiveEventFuzzTest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivedataclass_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivegroupcontroller_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactiveperiodstats_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivebundlemgrhelper_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivecalendar_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactiveeventlist_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactiveeventtracker_fuzzer:fuzztest"
       ]
     }
   }
