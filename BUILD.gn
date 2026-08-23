@@ -47,26 +47,6 @@ config("usagestatsutils_config") {
   include_dirs = [ "utils/include" ]
 }
 
-ohos_source_set("bundle_active_service_stub") {
-  sanitize = {
-    cfi = true
-    cfi_cross_dso = true
-    debug = false
-  }
-  output_values = get_target_outputs(":bundle_active_interface")
-  sources = filter_include(output_values, [ "*_stub.cpp" ])
-  public_configs = []
-  deps = [ ":bundle_active_interface" ]
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "samgr:samgr_proxy",
-  ]
-  subsystem_name = "resourceschedule"
-  part_name = "${device_usage_statistics_part_name}"
-}
-
 ohos_shared_library("usagestatsinner") {
   sources = [
     "interfaces/innerkits/src/app_group_callback_info.cpp",
@@ -152,7 +132,9 @@ ohos_shared_library("bundlestate") {
     "ffrt:libffrt",
     "hilog:libhilog",
     "ipc:ipc_single",
+    "libuv:uv",
     "napi:ace_napi",
+    "node:node_header_notice",
     "samgr:samgr_proxy",
   ]
   relative_install_dir = "module"
@@ -200,7 +182,9 @@ ohos_shared_library("usagestatistics") {
     "ffrt:libffrt",
     "hilog:libhilog",
     "ipc:ipc_single",
+    "libuv:uv",
     "napi:ace_napi",
+    "node:node_header_notice",
     "samgr:samgr_proxy",
   ]
   relative_install_dir = "module/resourceschedule"
@@ -243,6 +227,8 @@ ohos_shared_library("usagestatservice") {
     "services/common/src/bundle_active_shutdown_callback_service.cpp",
     "services/common/src/bundle_active_usage_database.cpp",
     "services/common/src/bundle_active_usage_database_upgrade.cpp",
+    "services/common/src/bundle_active_visibility_changed_listener.cpp",
+    "services/common/src/bundle_active_window_visibility_manager.cpp",
     "services/packagegroup/src/bundle_active_group_controller.cpp",
     "services/packagegroup/src/bundle_active_group_handler.cpp",
     "services/packagegroup/src/bundle_active_user_history.cpp",
@@ -269,6 +255,7 @@ ohos_shared_library("usagestatservice") {
     "access_token:libtokenid_sdk",
     "cJSON:cjson",
     "config_policy:configpolicy_util",
+    "c_utils:utils", 
     "ffrt:libffrt",
     "hicollie:libhicollie",
     "hilog:libhilog",
@@ -279,6 +266,7 @@ ohos_shared_library("usagestatservice") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "time_service:time_client",
+    "window_manager:libwm_lite",
   ]
 
   if (os_account_part_enabled) {
@@ -325,6 +313,8 @@ ohos_static_library("usagestatservice_static") {
     "services/common/src/bundle_active_shutdown_callback_service.cpp",
     "services/common/src/bundle_active_usage_database.cpp",
     "services/common/src/bundle_active_usage_database_upgrade.cpp",
+    "services/common/src/bundle_active_visibility_changed_listener.cpp",
+    "services/common/src/bundle_active_window_visibility_manager.cpp",
     "services/packagegroup/src/bundle_active_group_controller.cpp",
     "services/packagegroup/src/bundle_active_group_handler.cpp",
     "services/packagegroup/src/bundle_active_user_history.cpp",
@@ -351,6 +341,7 @@ ohos_static_library("usagestatservice_static") {
     "access_token:libtokenid_sdk",
     "cJSON:cjson",
     "config_policy:configpolicy_util",
+    "c_utils:utils", 
     "ffrt:libffrt",
     "hicollie:libhicollie",
     "hilog:libhilog",
@@ -361,6 +352,7 @@ ohos_static_library("usagestatservice_static") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "time_service:time_client",
+    "window_manager:libwm_lite",
   ]
 
   if (os_account_part_enabled) {
@@ -496,6 +488,7 @@ group("test_all") {
       "${usage_statistics_path}/test/fuzztest/bundleactiveparallelization_fuzzer:fuzztest",
       "${usage_statistics_path}/test/fuzztest/bundleactivepowerstatecallbackproxy_fuzzer:fuzztest",
       "${usage_statistics_path}/test/unittest:unittest",
+      "${usage_statistics_path}/test/fuzztest:fuzztest",
     ]
   }
 }

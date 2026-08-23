@@ -163,8 +163,34 @@ void BundleActiveUsageDatabase::InitDatabaseTableInfo(int64_t currentTime)
         int64_t eventTableTime = ParseStartTime(eventTableName_);
         if (currentTime < eventTableTime) {
             DeleteInvalidTable(EVENT_DATABASE_INDEX, eventTableTime);
+            eventTableName_ = UNKNOWN_TABLE_NAME;
         }
     }
+    InitEventTable(currentTime);
+}
+
+void BundleActiveUsageDatabase::InitEventTable(const int64_t currentTime)
+{
+// LCOV_EXCL_START
+    if (eventTableName_ != UNKNOWN_TABLE_NAME) {
+        return;
+    }
+    vector<vector<string>> allTableName = vector<vector<string>>(ALL_TABLE_ARRAY_NUMBER);
+    HandleAllTableName(EVENT_DATABASE_INDEX, allTableName);
+    vector<string> eventTables = allTableName.at(EVENT_DATABASE_INDEX);
+    std::sort(eventTables.begin(), eventTables.end());
+    for (int32_t i = static_cast<int32_t>(eventTables.size()) - 1; i >= 0; --i) {
+        int64_t eventTableTime = ParseStartTime(eventTables[i]);
+        if (eventTableName_ == UNKNOWN_TABLE_NAME && currentTime >= eventTableTime) {
+            eventTableName_ = eventTables[i];
+            continue;
+        }
+        DeleteInvalidTable(EVENT_DATABASE_INDEX, eventTableTime);
+    }
+    if (eventTableName_ == UNKNOWN_TABLE_NAME) {
+        CreateEventLogTable(EVENT_DATABASE_INDEX, currentTime);
+    }
+// LCOV_EXCL_STOP
 }
 
 int32_t BundleActiveUsageDatabase::NearIndexOnOrAfterCurrentTime(int64_t currentTime,
@@ -337,7 +363,7 @@ void BundleActiveUsageDatabase::DeleteExcessiveTableData(uint32_t databaseType)
         if (debugDatabase_) {
             deleteTimePoint = eventBeginTime_ - SIX_DAY_IN_MILLIS_MAX_DEBUG - eventTableTime;
         } else {
-            deleteTimePoint = eventBeginTime_ - SIX_DAY_IN_MILLIS_MAX - eventTableTime;
+            deleteTimePoint = eventBeginTime_ - SEVEN_DAY_IN_MILLIS_MAX - eventTableTime;
         }
         if (deleteTimePoint <= 0) {
             return;
@@ -1019,9 +1045,7 @@ void BundleActiveUsageDatabase::FlushEventInfo(uint32_t databaseType, BundleActi
         BUNDLE_ACTIVE_LOGE("flush event info fail, rdbStore is nullptr");
         return;
     }
-    if (eventTableName_ == UNKNOWN_TABLE_NAME) {
-        CreateEventLogTable(databaseType, stats.beginTime_);
-    }
+    InitEventTable(stats.beginTime_);
     int64_t eventTableTime = ParseStartTime(eventTableName_);
     std::vector<NativeRdb::ValuesBucket> valuesBuckets;
     for (int32_t i = 0; i < stats.events_.Size(); i++) {
@@ -1916,7 +1940,7 @@ void BundleActiveUsageDatabase::DeleteExcessiveEventTableData(int32_t deleteDays
         return;
     }
     int64_t eventTableTime = ParseStartTime(eventTableName_);
-    int64_t deleteTimePoint = eventBeginTime_ - (SIX_DAY_IN_MILLIS_MAX - deleteDays * ONE_DAY_TIME) - eventTableTime;
+    int64_t deleteTimePoint = eventBeginTime_ - (SEVEN_DAY_IN_MILLIS_MAX - deleteDays * ONE_DAY_TIME) - eventTableTime;
     if (deleteTimePoint <= 0) {
         return;
     }

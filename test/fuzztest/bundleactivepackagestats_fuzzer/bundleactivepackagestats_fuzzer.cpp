@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,7 +15,10 @@
 
 #include "bundleactivepackagestats_fuzzer.h"
 
+#include <cstdint>
 #include <fuzzer/FuzzedDataProvider.h>
+#include <memory>
+#include <string>
 
 #include "bundle_active_event.h"
 #include "bundle_active_package_stats.h"
@@ -117,14 +120,16 @@ void FuzzPackageStatsLongTimeTaskTracking(FuzzedDataProvider &provider)
     }
 }
 enum class StatsScenario : uint8_t {
-        UPDATE_ABILITY_FOREGROUND = 0, // 更新 Ability 前台状态
-        UPDATE_ABILITY_BACKGROUND,     // 更新 Ability 后台状态
-        UPDATE_TASK_STARTED,           // 长时间任务开始
-        UPDATE_TASK_ENDED,             // 长时间任务结束
-        INCREMENT_TIME_USED,           // 增加使用时间
-        INCREMENT_LAUNCH_COUNT,        // 增加启动次数
-        MAX_SCENARIO                   // 用于限制 Fuzzer 的随机范围
-    };
+    UPDATE_ABILITY_FOREGROUND = 0, // 更新 Ability 前台状态
+    UPDATE_ABILITY_BACKGROUND,     // 更新 Ability 后台状态
+    UPDATE_TASK_STARTED,           // 长时间任务开始
+    UPDATE_TASK_ENDED,             // 长时间任务结束
+    INCREMENT_TIME_USED,           // 增加使用时间
+    INCREMENT_LAUNCH_COUNT,        // 增加启动次数
+};
+constexpr int32_t MIN_STATS_SCENARIO = static_cast<int32_t>(StatsScenario::UPDATE_ABILITY_FOREGROUND);
+constexpr int32_t MAX_STATS_SCENARIO = static_cast<int32_t>(StatsScenario::INCREMENT_LAUNCH_COUNT);
+
 void FuzzPackageStatsMixedScenario(FuzzedDataProvider &provider)
 {
     BundleActivePackageStats stats;
@@ -135,7 +140,7 @@ void FuzzPackageStatsMixedScenario(FuzzedDataProvider &provider)
 
     int32_t operationCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_OPERATIONS);
     for (int32_t i = 0; i < operationCount; ++i) {
-        int32_t scenario = provider.ConsumeIntegralInRange<int32_t>(0, 5);
+        int32_t scenario = provider.ConsumeIntegralInRange<int32_t>(MIN_STATS_SCENARIO, MAX_STATS_SCENARIO);
         switch (static_cast<StatsScenario>(scenario)) {
             case StatsScenario::UPDATE_ABILITY_FOREGROUND: {
                 std::string abilityId = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
@@ -206,6 +211,30 @@ void FuzzPackageStatsCopyAndAssignment(FuzzedDataProvider &provider)
         provider.ConsumeIntegral<int32_t>());
 }
 
+void FuzzPackageStatsMarshalling(FuzzedDataProvider &provider)
+{
+    BundleActivePackageStats stats;
+    stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+    stats.beginTimeStamp_ = provider.ConsumeIntegral<int64_t>();
+    stats.endTimeStamp_ = provider.ConsumeIntegral<int64_t>();
+    stats.lastTimeUsed_ = provider.ConsumeIntegral<int64_t>();
+    stats.totalInFrontTime_ = provider.ConsumeIntegral<int64_t>();
+    stats.userId_ = provider.ConsumeIntegral<int32_t>();
+    stats.uid_ = provider.ConsumeIntegral<int32_t>();
+    stats.appIndex_ = provider.ConsumeIntegral<int32_t>();
+
+    Parcel parcel;
+    if (!stats.Marshalling(parcel)) {
+        return;
+    }
+    parcel.RewindRead(0);
+    std::unique_ptr<BundleActivePackageStats> unmarshalled(
+        BundleActivePackageStats::Unmarshalling(parcel));
+    if (unmarshalled != nullptr) {
+        (void)unmarshalled->ToString();
+    }
+}
+
 void FuzzPackageStatsEdgeCases(FuzzedDataProvider &provider)
 {
     BundleActivePackageStats stats;
@@ -236,6 +265,7 @@ enum FuzzCase : uint8_t {
     PACKAGE_STATS_TASK_TRACKING,
     PACKAGE_STATS_MIXED,
     PACKAGE_STATS_COPY,
+    PACKAGE_STATS_MARSHALLING,
     PACKAGE_STATS_EDGE_CASES,
     FUZZ_CASE_COUNT,
 };
@@ -260,6 +290,9 @@ void DispatchFuzzCase(FuzzedDataProvider &provider)
             break;
         case PACKAGE_STATS_COPY:
             FuzzPackageStatsCopyAndAssignment(provider);
+            break;
+        case PACKAGE_STATS_MARSHALLING:
+            FuzzPackageStatsMarshalling(provider);
             break;
         case PACKAGE_STATS_EDGE_CASES:
             FuzzPackageStatsEdgeCases(provider);

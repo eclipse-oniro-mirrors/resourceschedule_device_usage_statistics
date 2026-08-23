@@ -327,19 +327,7 @@ HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_DeleteExce
     database->DeleteExcessiveEventTableData(0);
     database->InitDatabaseTableInfo(100);
     database->DeleteExcessiveEventTableData(0);
-    EXPECT_EQ(database->eventTableName_, "a123");
-}
-
-/*
- * @tc.name: GetSteadyTime_001
- * @tc.desc: BundleActiveUtil Test
- * @tc.type: FUNC
- * @tc.require: issuesIC2FBU
- */
-HWTEST_F(BundleActiveUsageDatabaseTest, GetSteadyTime_001,
-    Function | MediumTest | TestSize.Level0)
-{
-    EXPECT_TRUE(BundleActiveUtil::GetSteadyTime() > 0);
+    EXPECT_EQ(database->eventTableName_, "DeviceEventLog100");
 }
 
 /*

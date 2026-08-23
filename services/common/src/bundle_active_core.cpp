@@ -397,9 +397,7 @@ void BundleActiveCore::RestoreAllData()
         }
         BUNDLE_ACTIVE_LOGI("userid is %{public}d ", service->userId_);
         service->RestoreStats(true);
-        if (BundleActiveGroupController::GetInstance().bundleUserHistory_ != nullptr) {
-            BundleActiveGroupController::GetInstance().RestoreToDatabase(it.first);
-        }
+        BundleActiveGroupController::GetInstance().RestoreToDatabase(it.first);
     }
     BundleActiveGroupController::GetInstance().RestoreDurationToDatabase();
     auto bundleActiveReportHandler = BundleActiveReportController::GetInstance().GetBundleReportHandler();
@@ -1176,6 +1174,11 @@ void BundleActiveCore::ProcessEvents(
             it->second.startTime = DEFAULT_INVALID_VALUE;
         }
     }
+}
+
+bool BundleActiveCore::IsWindowVisibilityEnable()
+{
+    return bundleActiveConfigReader_->IsWindowVisibilityEnable();
 }
 }  // namespace DeviceUsageStats
 }  // namespace OHOS
