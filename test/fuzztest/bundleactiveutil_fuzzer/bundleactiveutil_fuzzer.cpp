@@ -74,7 +74,6 @@ void FuzzTimeHelpers(FuzzedDataProvider &provider)
     (void)BundleActiveUtil::GetIntervalTypeStartTime(timeStamp, intervalType);
     (void)BundleActiveUtil::GetSystemTimeMs();
     (void)BundleActiveUtil::GetNowMicroTime();
-    (void)BundleActiveUtil::GetSteadyTime();
 }
 
 void FuzzPathHelpers(FuzzedDataProvider &provider)
