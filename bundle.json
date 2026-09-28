@@ -5,20 +5,17 @@
   "license": "Apache License 2.0",
   "publishAs": "code-segment",
   "segment": {
-    "destPath": "foundation/resourceschedule/device_usage_statistics"
+    "destPath" : "foundation/resourceschedule/device_usage_statistics"
   },
   "dirs": {},
   "scripts": {},
   "component": {
     "name": "device_usage_statistics",
     "subsystem": "resourceschedule",
-    "syscap": [
-      "SystemCapability.ResourceSchedule.UsageStatistics.AppGroup",
-      "SystemCapability.ResourceSchedule.UsageStatistics.App"
-    ],
-    "features": [
-      "device_usage_statistics_device_enable"
-    ],
+    "syscap": [ "SystemCapability.ResourceSchedule.UsageStatistics.AppGroup",
+                "SystemCapability.ResourceSchedule.UsageStatistics.App"
+              ],
+    "features": [ "device_usage_statistics_device_enable" ],
     "adapted_system_type": [
       "standard"
     ],
@@ -47,19 +44,25 @@
         "init",
         "ffrt",
         "hisysevent",
-        "hitrace"
+        "hitrace",
+        "window_manager",
+        "ets_frontend",
+        "taihe_ffi_gen",
+        "node",
+        "libuv"
       ],
       "third_party": []
     },
     "build": {
-      "group_type": {
+      "group_type" : {
         "base_group": [],
         "fwk_group": [
           "//foundation/resourceschedule/device_usage_statistics:bfwk_group_all",
           "//foundation/resourceschedule/device_usage_statistics/interfaces/kits/bundlestats/taihe/usage_statistics:usageStatistics_taihe"
         ],
         "service_group": [
-          "//foundation/resourceschedule/device_usage_statistics:service_group_all"
+          "//foundation/resourceschedule/device_usage_statistics:service_group_all",
+          "//foundation/resourceschedule/device_usage_statistics/tools/ohos-usageStatsQuery:ohos-usageStatsQuery"
         ]
       },
       "inner_kits": [

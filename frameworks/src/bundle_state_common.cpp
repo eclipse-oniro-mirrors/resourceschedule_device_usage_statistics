@@ -53,8 +53,7 @@ napi_value BundleStateCommon::HandleParamErr(const napi_env &env, int32_t errCod
     BUNDLE_ACTIVE_LOGE("HandleParamErr %{public}d", errCode);
     auto iter = paramErrCodeMsgMap.find(errCode);
     if (iter != paramErrCodeMsgMap.end()) {
-        std::string errMessage = newParamErr ? "BussinessError 10000008: Parameter error. "
-            : "BussinessError 401: Parameter error. ";
+        std::string errMessage = "Parameter error. ";
         errMessage.append(operation);
         errMessage.append(iter->second);
         if (newParamErr) {
@@ -72,7 +71,7 @@ std::string BundleStateCommon::GetSaErrCodeMsg(int32_t errCode, int32_t reflectC
     auto iter = saErrCodeMsgMap.find(errCode);
     std::string errMessage;
     if (iter != saErrCodeMsgMap.end()) {
-        errMessage.append("BussinessError ");
+        errMessage.append("BusinessError ");
         errMessage.append(std::to_string(reflectCode)).append(":").append(iter->second);
     }
     return errMessage;
@@ -715,6 +714,7 @@ void BundleStateCommon::MergePackageStats(BundleActivePackageStats &left, const 
     left.totalInFrontTime_ += right.totalInFrontTime_;
     left.totalContiniousTaskUsedTime_ += right.totalContiniousTaskUsedTime_;
     left.bundleStartedCount_ += right.bundleStartedCount_;
+    left.startCount_ += right.startCount_;
 }
 
 std::unique_ptr<AsyncCallbackInfoEventStats> BundleStateCommon::HandleEventStatsInfo(const napi_env &env,
