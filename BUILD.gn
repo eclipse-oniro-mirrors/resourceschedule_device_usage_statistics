@@ -447,6 +447,7 @@ ohos_shared_library("usagestatsutils") {
   part_name = "${device_usage_statistics_part_name}"
   subsystem_name = "resourceschedule"
   branch_protector_ret = "pac_ret"
+  version_script = "libusagestatsutils.versionscript"
 
   sanitize = {
     cfi = true

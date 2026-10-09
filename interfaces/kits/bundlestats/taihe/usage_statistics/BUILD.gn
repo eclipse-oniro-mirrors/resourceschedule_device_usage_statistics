@@ -55,6 +55,7 @@ taihe_shared_library("usageStatistics_taihe_native") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
+  version_script = "usageStatistics_taihe_native.versionscript"
   branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
