@@ -45,7 +45,7 @@ namespace DeviceUsageStats {
     static int64_t DEFAULT_FORMID = 1;
     constexpr uint32_t U32_AT_SIZE = 4;
     
-    const uint8_t* g_data = nullptr;
+    const uint8_t* G_DATA = nullptr;
     size_t g_size = 0;
     size_t g_pos;
 
@@ -54,10 +54,10 @@ namespace DeviceUsageStats {
     {
         T object {};
         size_t objectSize = sizeof(object);
-        if (g_data == nullptr || objectSize > g_size - g_pos) {
+        if (G_DATA == nullptr || objectSize > g_size - g_pos) {
             return object;
         }
-        errno_t ret = memcpy_s(&object, objectSize, g_data + g_pos, objectSize);
+        errno_t ret = memcpy_s(&object, objectSize, G_DATA + g_pos, objectSize);
         if (ret != EOK) {
             return {};
         }
@@ -89,7 +89,7 @@ namespace DeviceUsageStats {
 
     bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
     {
-        g_data = data;
+        G_DATA = data;
         g_size = size;
         PowerMgr::PowerState state = static_cast<PowerMgr::PowerState>(GetData<uint8_t>());
         auto bundleActiveCore = std::make_shared<BundleActiveCore>();
@@ -100,7 +100,7 @@ namespace DeviceUsageStats {
 
     bool BundleActiveClientFuzzTest(const uint8_t* data, size_t size)
     {
-        g_data = data;
+        G_DATA = data;
         g_size = size;
         bool result = false;
         int32_t userId = GetData<int32_t>();
@@ -158,7 +158,7 @@ namespace DeviceUsageStats {
 
     bool BundleActiveEventListFuzzTest(const uint8_t* data, size_t size)
     {
-        g_data = data;
+        G_DATA = data;
         g_size = size;
         BundleActiveEventList right;
         int64_t resultData = GetData<int64_t>();
@@ -178,7 +178,7 @@ namespace DeviceUsageStats {
 
     bool BundleActiveStatsCombinerFuzzTest(const uint8_t* data, size_t size)
     {
-        g_data = data;
+        G_DATA = data;
         g_size = size;
         auto combiner = std::make_shared<BundleActiveStatsCombiner<BundleActivePackageStats>>();
         auto stats = std::make_shared<BundleActivePeriodStats>();
