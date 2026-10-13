@@ -148,20 +148,6 @@ namespace DeviceUsageStats {
         return true;
     }
 
-    bool QueryBundleEventsByFilterFuzzTest(FuzzedDataProvider *provider)
-    {
-        std::vector<BundleActiveEvent> bundleActiveEvent;
-        BundleActiveEventFilter filter;
-        filter.beginTime_ = provider->ConsumeIntegral<int64_t>();
-        filter.endTime_ = provider->ConsumeIntegral<int64_t>();
-        filter.userId_ = provider->ConsumeIntegral<int32_t>();
-        filter.maxNum_ = provider->ConsumeIntegral<int32_t>();
-        int32_t eventId = provider->ConsumeIntegral<int32_t>();
-        filter.eventIds_.push_back(eventId);
-        GetBundleActiveService()->QueryBundleEventsByFilter(bundleActiveEvent, filter);
-        return true;
-    }
-
     bool QueryBundleStatsInfosFuzzTest(FuzzedDataProvider *provider)
     {
         std::vector<BundleActivePackageStats> packageStats;
