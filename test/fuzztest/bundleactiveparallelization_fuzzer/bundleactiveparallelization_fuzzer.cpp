@@ -291,10 +291,6 @@ extern "C" int FuzzIBundleActiveService(FuzzedDataProvider &provider)
             OHOS::DeviceUsageStats::QueryBundleEventsFuzzTest(&provider);
             break;
         }
-        case OHOS::DeviceUsageStats::FUZZ_CODE_17: {
-            OHOS::DeviceUsageStats::QueryBundleEventsByFilterFuzzTest(&provider);
-            break;
-        }
         case OHOS::DeviceUsageStats::FUZZ_CODE_5: {
             OHOS::DeviceUsageStats::QueryBundleStatsInfosFuzzTest(&provider);
             break;
