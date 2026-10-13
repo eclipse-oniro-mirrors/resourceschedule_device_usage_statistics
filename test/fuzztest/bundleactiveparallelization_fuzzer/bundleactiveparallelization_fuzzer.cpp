@@ -47,7 +47,6 @@ namespace DeviceUsageStats {
     constexpr int32_t FUZZ_CODE_14 = 14;
     constexpr int32_t FUZZ_CODE_15 = 15;
     constexpr int32_t FUZZ_CODE_16 = 16;
-    constexpr int32_t FUZZ_CODE_17 = 17;
 
     static bool g_isPermSet = false;
     static void NativeTokenGet()
@@ -269,7 +268,7 @@ extern "C" int FuzzIBundleActiveService(FuzzedDataProvider &provider)
     OHOS::DeviceUsageStats::NativeTokenGet();
     OHOS::DeviceUsageStats::InitBundleActiveService();
     int code = provider.ConsumeIntegralInRange(
-        OHOS::DeviceUsageStats::FUZZ_CODE_0, OHOS::DeviceUsageStats::FUZZ_CODE_17);
+        OHOS::DeviceUsageStats::FUZZ_CODE_0, OHOS::DeviceUsageStats::FUZZ_CODE_16);
     switch (code) {
         case OHOS::DeviceUsageStats::FUZZ_CODE_0: {
             OHOS::DeviceUsageStats::ReportEventFuzzTest(&provider);
