@@ -33,7 +33,7 @@ namespace DeviceUsageStats {
     constexpr uint32_t U32_AT_SIZE = 4;
     bool g_isInited = false;
 
-    const char* g_data = nullptr;
+    const char* G_DATA = nullptr;
     size_t g_size = 0;
     size_t g_pos;
 
@@ -42,10 +42,10 @@ namespace DeviceUsageStats {
     {
         T object {};
         size_t objectSize = sizeof(object);
-        if (g_data == nullptr || objectSize > g_size - g_pos) {
+        if (G_DATA == nullptr || objectSize > g_size - g_pos) {
             return object;
         }
-        if (memcpy_s(&object, objectSize, g_data + g_pos, objectSize) != EOK) {
+        if (memcpy_s(&object, objectSize, G_DATA + g_pos, objectSize) != EOK) {
             return {};
         }
         g_pos += objectSize;
@@ -54,7 +54,7 @@ namespace DeviceUsageStats {
 
     bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     {
-        g_data = data;
+        G_DATA = data;
         g_size = size;
         DelayedSingleton<FuzztestHelper>::GetInstance()->NativeTokenGet();
         if (!g_isInited) {
@@ -77,7 +77,7 @@ namespace DeviceUsageStats {
 
     bool BundleActiveServiceDumpFuzzTest(const char* data, size_t size)
     {
-        g_data = data;
+        G_DATA = data;
         g_size = size;
         int32_t fd = GetData<int32_t>();
         std::vector<std::u16string> args;
@@ -91,7 +91,7 @@ namespace DeviceUsageStats {
         std::vector<std::string> dumpOption;
         dumpOption.reserve(optSize);
         dumpOption.push_back(std::to_string(GetData<uint32_t>()));
-        dumpOption.push_back(cmdIdx < 4 ? DUMP_CMDS[cmdIdx] : std::to_string(GetData<uint32_t>()));
+        dumpOption.push_back(cmdIdx < U32_AT_SIZE ? DUMP_CMDS[cmdIdx] : std::to_string(GetData<uint32_t>()));
         for (int32_t i = 2; i < optSize; ++i) {
             dumpOption.push_back(std::to_string(GetData<uint32_t>()));
         }
