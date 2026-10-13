@@ -25,24 +25,13 @@
 namespace OHOS {
 namespace DeviceUsageStats {
     constexpr uint32_t U32_AT_SIZE = 4;
-    constexpr uint32_t MAX_CODE = 20; // current max code is 20
-    constexpr uint8_t TWENTYFOUR = 24;
-    constexpr uint8_t SIXTEEN = 16;
-    constexpr uint8_t EIGHT = 8;
-    constexpr uint8_t TWO = 2;
-    constexpr uint8_t THREE = 3;
     const std::u16string BUNDLE_ACTIVE_TOKEN = u"OHOS.DeviceUsageStats.IBundleActiveService";
     bool isInited = false;
-
-    uint32_t GetU32Data(const char* ptr)
-    {
-        return (ptr[0] << TWENTYFOUR) | (ptr[1] << SIXTEEN) | (ptr[TWO] << EIGHT) | (ptr[THREE]);
-    }
 
     bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     {
         DelayedSingleton<FuzztestHelper>::GetInstance()->NativeTokenGet();
-        uint32_t code = GetU32Data(data);
+        uint32_t code = static_cast<uint32_t>(static_cast<uint8_t>(data[0]));
         MessageParcel datas;
         datas.WriteInterfaceToken(BUNDLE_ACTIVE_TOKEN);
         datas.WriteBuffer(data, size);
@@ -53,6 +42,7 @@ namespace DeviceUsageStats {
             DelayedSingleton<BundleActiveService>::GetInstance()->InitService();
             isInited = true;
         }
+        DelayedSingleton<BundleActiveService>::GetInstance()->OnRemoteRequest(code, datas, reply, option);
         return true;
     }
 } // namespace DeviceUsageStats

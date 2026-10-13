@@ -43,9 +43,6 @@ namespace DeviceUsageStats {
     static std::string g_defaultFormName = "defaultformname";
     static int32_t DEFAULT_DIMENSION = 4;
     static int64_t DEFAULT_FORMID = 1;
-    const int32_t INTERVAL_TYPE_COUNT = 5;
-    const int32_t APP_TYPE_COUNT = 6;
-    const int32_t APP_TYPE_INTERVAL = 10;
     constexpr uint32_t U32_AT_SIZE = 4;
     
     const uint8_t* g_data = nullptr;
@@ -73,16 +70,20 @@ namespace DeviceUsageStats {
         if (strlen <= 0) {
             return "";
         }
-        char cstr[strlen];
-        cstr[strlen - 1] = '\0';
+
+        constexpr int32_t MAX_STR_LEN = 256;
+        if (strlen > MAX_STR_LEN) {
+            strlen = MAX_STR_LEN;
+        }
+        std::string str;
+        str.reserve(strlen - 1);
         for (int i = 0; i < strlen - 1; i++) {
             char tmp = GetData<char>();
             if (tmp == '\0') {
                 tmp = '1';
             }
-            cstr[i] = tmp;
+            str.push_back(tmp);
         }
-        std::string str(cstr);
         return str;
     }
 
@@ -90,8 +91,7 @@ namespace DeviceUsageStats {
     {
         g_data = data;
         g_size = size;
-        uint32_t code = GetData<uint32_t>();
-        PowerMgr::PowerState state = static_cast<PowerMgr::PowerState>(code);
+        PowerMgr::PowerState state = static_cast<PowerMgr::PowerState>(GetData<uint8_t>());
         auto bundleActiveCore = std::make_shared<BundleActiveCore>();
         BundleActivePowerStateCallbackService BundleActivePowerStateCallbackService(bundleActiveCore);
         BundleActivePowerStateCallbackService.OnPowerStateChanged(state);
@@ -104,9 +104,10 @@ namespace DeviceUsageStats {
         g_size = size;
         bool result = false;
         int32_t userId = GetData<int32_t>();
-        std::string inputBundleName = GetStringFromData(size);
+        std::string inputBundleName = GetStringFromData(static_cast<int32_t>(GetData<uint8_t>()));
         sptr<IAppGroupCallback> appGroupCallback = nullptr;
-        int32_t intervalType = GetData<int32_t>() % INTERVAL_TYPE_COUNT;
+
+        int32_t intervalType = static_cast<int32_t>(GetData<uint8_t>());
         int64_t beginTime = GetData<int64_t>();
         int64_t endTime = GetData<int64_t>();
         int32_t appGroup = GetData<int32_t>();
@@ -129,9 +130,8 @@ namespace DeviceUsageStats {
         DelayedSingleton<BundleActiveClient>::GetInstance()->QueryBundleEvents(bundleActiveEvent,
         beginTime, endTime, userId);
 
-        int32_t newGroup = GetData<int32_t>();
-        newGroup = (newGroup % APP_TYPE_COUNT + 1) * APP_TYPE_INTERVAL;
-        std::string bundleName = GetStringFromData(size);
+        int32_t newGroup = static_cast<int32_t>(GetData<uint8_t>());
+        std::string bundleName = GetStringFromData(static_cast<int32_t>(GetData<uint8_t>()));
         DelayedSingleton<BundleActiveClient>::GetInstance()->SetAppGroup(bundleName, newGroup, userId);
 
         std::vector<BundleActiveEventStats> eventStats;
@@ -146,7 +146,8 @@ namespace DeviceUsageStats {
             bundleName, userId);
         DelayedSingleton<BundleActiveClient>::GetInstance()->QueryBundleStatsInfos(packageStats,
             intervalType, beginTime, endTime);
-        DelayedSingleton<BundleActiveClient>::GetInstance()->QueryHighFrequencyUsageBundleInfos(packageStats, userId);
+        DelayedSingleton<BundleActiveClient>::GetInstance()->QueryHighFrequencyUsageBundleInfos(packageStats,
+            userId);
         DelayedSingleton<BundleActiveClient>::GetInstance()->QueryCurrentBundleEvents(bundleActiveEvent,
             beginTime, endTime);
         DelayedSingleton<BundleActiveClient>::GetInstance()->QueryAppGroup(appGroup, bundleName);
@@ -163,8 +164,8 @@ namespace DeviceUsageStats {
         int64_t resultData = GetData<int64_t>();
         auto combiner = std::make_shared<BundleActiveEventList>();
         BundleActiveEvent event;
-        event.bundleName_ = GetStringFromData(size);
-        event.continuousTaskAbilityName_ = GetStringFromData(size);
+        event.bundleName_ = GetStringFromData(static_cast<int32_t>(GetData<uint8_t>()));
+        event.continuousTaskAbilityName_ = GetStringFromData(static_cast<int32_t>(GetData<uint8_t>()));
         event.timeStamp_ = GetData<int64_t>();
 
         combiner->Size();
