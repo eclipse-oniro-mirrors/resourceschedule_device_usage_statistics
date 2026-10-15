@@ -25,16 +25,11 @@
 #include "bundle_active_event_list.h"
 
 #include "fuzzer/FuzzedDataProvider.h"
+#include "nativetoken_kit.h"
 #include "token_setproc.h"
 
-auto bundleActiveService = std::make_shared<OHOS::DeviceUsageStats::BundleActiveService>();
 namespace OHOS {
 namespace DeviceUsageStats {
-    static std::string g_defaultBundleName = "com.ohos.camera";
-    static std::string g_defaultMoudleName = "defaultmoudlename";
-    static std::string g_defaultFormName = "defaultformname";
-    static int32_t DEFAULT_DIMENSION = 4;
-    static int64_t DEFAULT_FORMID = 1;
     constexpr int32_t FUZZ_CODE_0 = 0;
     constexpr int32_t FUZZ_CODE_1 = 1;
     constexpr int32_t FUZZ_CODE_2 = 2;
@@ -53,12 +48,61 @@ namespace DeviceUsageStats {
     constexpr int32_t FUZZ_CODE_15 = 15;
     constexpr int32_t FUZZ_CODE_16 = 16;
 
+    static bool g_isPermSet = false;
+    static void NativeTokenGet()
+    {
+        if (g_isPermSet) {
+            return;
+        }
+        uint64_t tokenId;
+        const char *perms[] = {
+            "ohos.permission.BUNDLE_ACTIVE_INFO",
+        };
+
+        NativeTokenInfoParams infoInstance = {
+            .dcapsNum = 0,
+            .permsNum = 1,
+            .aclsNum = 0,
+            .dcaps = nullptr,
+            .perms = perms,
+            .acls = nullptr,
+            .aplStr = "system_basic",
+        };
+
+        infoInstance.processName = "resource_schedule_service";
+        tokenId = GetAccessTokenId(&infoInstance);
+        SetSelfTokenID(tokenId);
+        OHOS::Security::AccessToken::AccessTokenKit::ReloadNativeTokenInfo();
+        g_isPermSet = true;
+    }
+
+    static bool g_isServiceInited = false;
+
+    static void InitBundleActiveService()
+    {
+        if (!g_isServiceInited) {
+            DelayedSingleton<BundleActiveService>::GetInstance()->InitService();
+            g_isServiceInited = true;
+        }
+    }
+
+    static std::shared_ptr<BundleActiveService> GetBundleActiveService()
+    {
+        return DelayedSingleton<BundleActiveService>::GetInstance();
+    }
+
     bool ReportEventFuzzTest(FuzzedDataProvider *provider)
     {
         int32_t userId = provider->ConsumeIntegral<int32_t>();
-        BundleActiveEvent event(g_defaultBundleName, g_defaultMoudleName, g_defaultFormName,
-            DEFAULT_DIMENSION, DEFAULT_FORMID, BundleActiveEvent::FORM_IS_CLICKED);
-        bundleActiveService->ReportEvent(event, userId);
+        std::string bundleName = provider->ConsumeRandomLengthString();
+        std::string moduleName = provider->ConsumeRandomLengthString();
+        std::string formName = provider->ConsumeRandomLengthString();
+        int32_t formDimension = provider->ConsumeIntegral<int32_t>();
+        int64_t formId = provider->ConsumeIntegral<int64_t>();
+        int32_t eventId = provider->ConsumeIntegral<int32_t>();
+        BundleActiveEvent event(bundleName, moduleName, formName,
+            formDimension, formId, eventId);
+        GetBundleActiveService()->ReportEvent(event, userId);
         return true;
     }
 
@@ -67,7 +111,7 @@ namespace DeviceUsageStats {
         bool result = false;
         int32_t userId = provider->ConsumeIntegral<int32_t>();
         std::string inputBundleName = provider->ConsumeRandomLengthString();
-        bundleActiveService->IsBundleIdle(result, inputBundleName, userId);
+        GetBundleActiveService()->IsBundleIdle(result, inputBundleName, userId);
         return true;
     }
 
@@ -76,7 +120,7 @@ namespace DeviceUsageStats {
         bool result = false;
         int32_t userId = provider->ConsumeIntegral<int32_t>();
         std::string inputBundleName = provider->ConsumeRandomLengthString();
-        bundleActiveService->IsBundleUsePeriod(result, inputBundleName, userId);
+        GetBundleActiveService()->IsBundleUsePeriod(result, inputBundleName, userId);
         return true;
     }
 
@@ -87,7 +131,7 @@ namespace DeviceUsageStats {
         int64_t endTime = provider->ConsumeIntegral<int64_t>();
         int32_t userId = provider->ConsumeIntegral<int32_t>();
         std::vector<BundleActivePackageStats> packageStats;
-        bundleActiveService->QueryBundleStatsInfoByInterval(packageStats,
+        GetBundleActiveService()->QueryBundleStatsInfoByInterval(packageStats,
             intervalType, beginTime, endTime, userId);
         return true;
     }
@@ -98,7 +142,7 @@ namespace DeviceUsageStats {
         int64_t beginTime = provider->ConsumeIntegral<int64_t>();
         int64_t endTime = provider->ConsumeIntegral<int64_t>();
         int32_t userId = provider->ConsumeIntegral<int32_t>();
-        bundleActiveService->QueryBundleEvents(bundleActiveEvent,
+        GetBundleActiveService()->QueryBundleEvents(bundleActiveEvent,
             beginTime, endTime, userId);
         return true;
     }
@@ -109,7 +153,7 @@ namespace DeviceUsageStats {
         int32_t intervalType = provider->ConsumeIntegral<int32_t>();
         int64_t beginTime = provider->ConsumeIntegral<int64_t>();
         int64_t endTime = provider->ConsumeIntegral<int64_t>();
-        bundleActiveService->QueryBundleStatsInfos(packageStats,
+        GetBundleActiveService()->QueryBundleStatsInfos(packageStats,
             intervalType, beginTime, endTime);
         return true;
     }
@@ -121,7 +165,7 @@ namespace DeviceUsageStats {
         constexpr int32_t defaultNum = 20;
         maxNum = maxNum > 0 ? maxNum : defaultNum;
         int32_t userId = provider->ConsumeIntegral<int32_t>();
-        bundleActiveService->QueryHighFrequencyUsageBundleInfos(packageStats,
+        GetBundleActiveService()->QueryHighFrequencyUsageBundleInfos(packageStats,
             userId, maxNum);
         return true;
     }
@@ -131,7 +175,7 @@ namespace DeviceUsageStats {
         std::vector<BundleActiveEvent> events;
         int64_t beginTime = provider->ConsumeIntegral<int64_t>();
         int64_t endTime = provider->ConsumeIntegral<int64_t>();
-        bundleActiveService->QueryCurrentBundleEvents(events, beginTime, endTime);
+        GetBundleActiveService()->QueryCurrentBundleEvents(events, beginTime, endTime);
         return true;
     }
 
@@ -140,7 +184,7 @@ namespace DeviceUsageStats {
         int32_t appGroup = 0;
         std::string bundleName = provider->ConsumeRandomLengthString();
         int32_t userId = provider->ConsumeIntegral<int32_t>();
-        bundleActiveService->QueryAppGroup(appGroup, bundleName, userId);
+        GetBundleActiveService()->QueryAppGroup(appGroup, bundleName, userId);
         return true;
     }
 
@@ -149,7 +193,7 @@ namespace DeviceUsageStats {
         int32_t newGroup = provider->ConsumeIntegral<int32_t>();
         std::string bundleName = provider->ConsumeRandomLengthString();
         int32_t userId = provider->ConsumeIntegral<int32_t>();
-        bundleActiveService->SetAppGroup(bundleName, newGroup, userId);
+        GetBundleActiveService()->SetAppGroup(bundleName, newGroup, userId);
         return true;
     }
 
@@ -158,7 +202,7 @@ namespace DeviceUsageStats {
         int32_t maxNum = provider->ConsumeIntegral<int32_t>();
         int32_t userId = provider->ConsumeIntegral<int32_t>();
         std::vector<BundleActiveModuleRecord> bundleActiveModuleRecord;
-        bundleActiveService->QueryModuleUsageRecords(maxNum, bundleActiveModuleRecord, userId);
+        GetBundleActiveService()->QueryModuleUsageRecords(maxNum, bundleActiveModuleRecord, userId);
         return true;
     }
 
@@ -185,7 +229,7 @@ namespace DeviceUsageStats {
         int64_t beginTime = provider->ConsumeIntegral<int64_t>();
         int64_t endTime = provider->ConsumeIntegral<int64_t>();
         int32_t userId = provider->ConsumeIntegral<int32_t>();
-        bundleActiveService->QueryDeviceEventStats(beginTime, endTime, eventStats, userId);
+        GetBundleActiveService()->QueryDeviceEventStats(beginTime, endTime, eventStats, userId);
         return true;
     }
 
@@ -195,7 +239,7 @@ namespace DeviceUsageStats {
         int64_t beginTime = provider->ConsumeIntegral<int64_t>();
         int64_t endTime = provider->ConsumeIntegral<int64_t>();
         int32_t userId = provider->ConsumeIntegral<int32_t>();
-        bundleActiveService->QueryNotificationEventStats(beginTime, endTime, eventStats, userId);
+        GetBundleActiveService()->QueryNotificationEventStats(beginTime, endTime, eventStats, userId);
         return true;
     }
 
@@ -203,16 +247,16 @@ namespace DeviceUsageStats {
     {
         int32_t userId = provider->ConsumeIntegral<int32_t>();
         std::vector<BundleActiveHighFrequencyPeriod> appFreqHours;
-        bundleActiveService->QueryHighFrequencyPeriodBundle(appFreqHours, userId);
+        GetBundleActiveService()->QueryHighFrequencyPeriodBundle(appFreqHours, userId);
         return true;
     }
 
     bool QueryBundleTodayLatestUsedTimeFuzzTest(FuzzedDataProvider *provider)
     {
-        int64_t latestUsedTime;
+        int64_t latestUsedTime = 0;
         std::string bundleName = provider->ConsumeRandomLengthString();
         int32_t userId = provider->ConsumeIntegral<int32_t>();
-        bundleActiveService->QueryBundleTodayLatestUsedTime(latestUsedTime,
+        GetBundleActiveService()->QueryBundleTodayLatestUsedTime(latestUsedTime,
             bundleName, userId);
         return true;
     }
@@ -221,6 +265,8 @@ namespace DeviceUsageStats {
 
 extern "C" int FuzzIBundleActiveService(FuzzedDataProvider &provider)
 {
+    OHOS::DeviceUsageStats::NativeTokenGet();
+    OHOS::DeviceUsageStats::InitBundleActiveService();
     int code = provider.ConsumeIntegralInRange(
         OHOS::DeviceUsageStats::FUZZ_CODE_0, OHOS::DeviceUsageStats::FUZZ_CODE_16);
     switch (code) {
