@@ -210,7 +210,6 @@ static void FuzzUtilStringAndTime(FuzzedDataProvider& fdp)
     (void)BundleActiveUtil::StringToInt64(fdp.ConsumeRandomLengthString(MAX_NAME_LEN));
 
     (void)BundleActiveUtil::GetSystemTimeMs();
-    (void)BundleActiveUtil::GetSteadyTime();
     (void)BundleActiveUtil::GetNowMicroTime();
 }
 

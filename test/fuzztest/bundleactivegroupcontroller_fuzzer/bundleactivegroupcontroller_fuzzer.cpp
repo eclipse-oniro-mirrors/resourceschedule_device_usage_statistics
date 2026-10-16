@@ -245,13 +245,45 @@ static void FuzzControllerPrivateHelpers(BundleActiveGroupController& ctrl, cons
         ctrl.SendCheckBundleMsg(ev, input.userId, FIVE_SECOND,
             BundleActiveGroupHandler::MSG_CHECK_DEFAULT_BUNDLE_STATE);
     }
-    {
-        auto hist = std::make_shared<BundleActivePackageHistory>();
-        hist->lastGroupCalculatedTimeStamp_ = FIXED_BOOT_TS;
-        (void)ctrl.calculationTimeOut(hist, AddBootTime(input.bootTs, FIRST_CHECK_DELTA));
-        (void)ctrl.calculationTimeOut(nullptr, input.bootTs);
-        if (ctrl.bundleUserHistory_ != nullptr) {
+    // master 已删除旧的超时计算 helper，超时判定并入 CheckAndUpdateGroup：
+    // 依据 history 的 bundleAliveTimeoutTimeStamp_ / bundleDailyTimeoutTimeStamp_ 与当前
+    // bootBasedTimeStamp 的比较决定保组或降级。这里构造“未超时/已超时”history 后走公开
+    // 入口 CheckAndUpdateGroup，覆盖与旧 helper 等价的分支。
+    if (ctrl.bundleUserHistory_ != nullptr) {
+        int64_t checkTs = AddBootTime(input.bootTs, FIRST_CHECK_DELTA);
+        auto hist = ctrl.bundleUserHistory_->GetUsageHistoryForBundle(
+            input.bundleName, input.userId, input.bootTs, true, input.uid);
+        if (hist != nullptr) {
+            // 把上次使用时间拨到足够早，保证 GetNewGroup->GetLevelIndex 能取到最高档
+            // （debug 模式阈值最长为 16 分钟）
+            hist->lastBootFromUsedTimeStamp_ = -ONE_HOUR;
+            hist->lastScreenUsedTimeStamp_ = -ONE_HOUR;
+
+            // alive 超时点在未来：命中 ALIVE 未超时分支
+            hist->reasonInGroup_ = GROUP_CONTROL_REASON_DEFAULT;
+            hist->currentGroup_ = ACTIVE_GROUP_NEVER;
+            hist->bundleAliveTimeoutTimeStamp_ = INT64_MAX;
+            hist->bundleDailyTimeoutTimeStamp_ = 0;
+            ctrl.CheckAndUpdateGroup(input.bundleName, input.userId, input.uid, checkTs);
+
+            // 仅 daily 超时点在未来：命中 DAILY 未超时分支
+            hist->reasonInGroup_ = GROUP_CONTROL_REASON_DEFAULT;
+            hist->currentGroup_ = ACTIVE_GROUP_NEVER;
+            hist->bundleAliveTimeoutTimeStamp_ = 0;
+            hist->bundleDailyTimeoutTimeStamp_ = INT64_MAX;
+            ctrl.CheckAndUpdateGroup(input.bundleName, input.userId, input.uid, checkTs);
+
+            // 两个超时点均已过：命中超时降级分支（GetNewGroup 结果直接生效）
+            hist->reasonInGroup_ = GROUP_CONTROL_REASON_DEFAULT;
+            hist->currentGroup_ = ACTIVE_GROUP_NEVER;
+            hist->bundleAliveTimeoutTimeStamp_ = 0;
+            hist->bundleDailyTimeoutTimeStamp_ = 0;
+            ctrl.CheckAndUpdateGroup(input.bundleName, input.userId, input.uid, checkTs);
+
+            // 直接覆盖 GetNewGroup；不存在的 bundle 取到空 history，等价旧 helper 的空指针防护路径
             (void)ctrl.GetNewGroup(input.bundleName, input.userId, input.bootTs, input.uid);
+            (void)ctrl.GetNewGroup(input.bundleName + "_timeout_noexist_key", input.userId,
+                input.bootTs, input.uid);
         }
     }
 }
