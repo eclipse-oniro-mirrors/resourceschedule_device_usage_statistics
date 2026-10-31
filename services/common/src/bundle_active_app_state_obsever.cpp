@@ -120,7 +120,7 @@ void BundleActiveAppStateObserver::OnProcessDied(const ProcessData &processData)
     }
 
     int32_t userId = -1;
-    OHOS::ErrCode ret = BundleActiveAccountHelper::GetUserId(appStateData.uid, userId);
+    OHOS::ErrCode ret = BundleActiveAccountHelper::GetUserId(processData.uid, userId);
     if (ret != ERR_OK || userId == -1) {
         BUNDLE_ACTIVE_LOGI("GetUserId failed bunldeName:%{public}s, uid:%{public}d, ret:%{public}d",
             processData.bundleName.c_str(), processData.uid, ret);
