@@ -218,7 +218,7 @@ bool BundleActiveEvent::IsAppStateEvent(const int32_t eventId)
 {
     if (eventId == ABILITY_BACKGROUND ||
         eventId == ABILITY_FOREGROUND ||
-        eventId == ABILITY_STOP
+        eventId == ABILITY_STOP ||
         eventId == APP_FOREGROUND ||
         eventId == APP_BACKGROUND) {
         return true;
