@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -41,6 +41,8 @@ public:
     int32_t appIndex_;
     // key is abilityId, value is the last event of this ability. Restore all abilities' last event of bundle.
     std::map<std::string, int32_t> abilities_;
+    // key is uid, value is the last event of this app. Restore all apps' last event of bundle.
+    std::map<int32_t, int32_t> appForegrounds_;
     // key is name of continuous task, value is last event of this last continuous task.
     std::map<std::string, int32_t> longTimeTasks_;
     /*
@@ -97,8 +99,10 @@ public:
 
 private:
     bool HasFrontAbility();
+    bool HasFrontApp();
     bool AnyLongTimeTaskStarted();
     void UpdateAbility(const int64_t timeStamp, const int32_t eventId, const std::string& abilityId);
+    void UpdateApp(const int64_t timeStamp, const int32_t eventId, const int32_t uid);
     void UpdateLongTimeTask(const std::string& longTimeTaskName, const int64_t timeStamp, const int32_t eventId);
 };
 }  // namespace DeviceUsageStats
