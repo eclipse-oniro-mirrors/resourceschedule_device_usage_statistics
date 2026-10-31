@@ -174,7 +174,7 @@ HWTEST_F(PackageUsageTest, PackageUsageTest_UpdateApp_001, Function | MediumTest
     auto packageStats = std::make_shared<BundleActivePackageStats>();
     int32_t uid = 30000000;
     int64_t timeStamp = 20000000000000;
-    eventId = BundleActiveEvent::APP_FOREGROUND;
+    int32_t eventId = BundleActiveEvent::APP_FOREGROUND;
     packageStats->UpdateApp(timeStamp, eventId, uid);
     EXPECT_TRUE(packageStats->HasFrontApp());
 
