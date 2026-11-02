@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -47,6 +47,7 @@ BundleActivePackageStats::BundleActivePackageStats (const BundleActivePackageSta
     startCount_ = orig.startCount_;
     bundleStartedCount_ = orig.bundleStartedCount_;
     abilities_ = orig.abilities_;
+    appForegrounds_ = orig.appForegrounds_;
     longTimeTasks_ = orig.longTimeTasks_;
     lastEvent_ = orig.lastEvent_;
     userId_ = orig.userId_;
@@ -58,6 +59,16 @@ bool BundleActivePackageStats::HasFrontAbility()
 {
     for (auto ability : abilities_) {
         if (ability.second == BundleActiveEvent::ABILITY_FOREGROUND) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool BundleActivePackageStats::HasFrontApp()
+{
+    for (auto app : appForegrounds_) {
+        if (app.second == BundleActiveEvent::APP_FOREGROUND) {
             return true;
         }
     }
@@ -137,6 +148,23 @@ void BundleActivePackageStats::UpdateAbility(const int64_t timeStamp, const int3
     }
 }
 
+void BundleActivePackageStats::UpdateApp(const int64_t timeStamp, const int32_t eventId, const int32_t uid)
+{
+    // The timestamp parameter is currently unused.
+    // It is retained for consistency with other Update* series functions and for future extensibility.
+    auto it = appForegrounds_.find(uid);
+    if (eventId == BundleActiveEvent::APP_FOREGROUND && it == appForegrounds_.end()) {
+        appForegrounds_[uid] = eventId;
+        return;
+    }
+
+    if (eventId == BundleActiveEvent::APP_BACKGROUND &&
+        it != appForegrounds_.end() && it->second == BundleActiveEvent::APP_FOREGROUND) {
+        appForegrounds_.erase(it);
+        return;
+    }
+}
+
 void BundleActivePackageStats::UpdateLongTimeTask(const std::string& longTimeTaskName, const int64_t timeStamp,
     const int32_t eventId)
 {
@@ -180,6 +208,10 @@ void BundleActivePackageStats::Update(const std::string& longTimeTaskName, const
         case BundleActiveEvent::ABILITY_BACKGROUND:
         case BundleActiveEvent::ABILITY_STOP:
             UpdateAbility(timeStamp, eventId, abilityId);
+            break;
+        case BundleActiveEvent::APP_FOREGROUND:
+        case BundleActiveEvent::APP_BACKGROUND:
+            UpdateApp(timeStamp, eventId, uid);
             break;
         case BundleActiveEvent::END_OF_THE_DAY:
             if (HasFrontAbility()) {

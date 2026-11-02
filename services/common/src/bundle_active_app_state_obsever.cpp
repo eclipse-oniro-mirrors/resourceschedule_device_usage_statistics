@@ -82,6 +82,59 @@ void BundleActiveAppStateObserver::OnAbilityStateChanged(const AbilityStateData 
         abilityStateData.abilityType, abilityStateData.bundleName.c_str(), userId, ret);
 }
 
+void BundleActiveAppStateObserver::OnForegroundApplicationChanged(const AppStateData &appStateData)
+{
+    if (!ValidateAppStateData(appStateData)) {
+        return;
+    }
+
+    if (appStateData.extensionType != AppExecFwk::ExtensionAbilityType::UNSPECIFIED) {
+        return;
+    }
+
+    int32_t userId = -1;
+    OHOS::ErrCode ret = BundleActiveAccountHelper::GetUserId(appStateData.uid, userId);
+    if (ret != ERR_OK || userId == -1) {
+        BUNDLE_ACTIVE_LOGI("GetUserId failed bunldeName:%{public}s, uid:%{public}d, ret:%{public}d",
+            appStateData.bundleName.c_str(), appStateData.uid, ret);
+        return;
+    }
+
+    if (appStateData.state == static_cast<int32_t>(AppExecFwk::ApplicationState::APP_STATE_FOREGROUND)) {
+        ReportAppEvent(appStateData.bundleName, appStateData.uid,
+            BundleActiveEvent::APP_FOREGROUND, userId);
+        return;
+    }
+
+    if (appStateData.state == static_cast<int32_t>(AppExecFwk::ApplicationState::APP_STATE_BACKGROUND)) {
+        ReportAppEvent(appStateData.bundleName, appStateData.uid,
+            BundleActiveEvent::APP_BACKGROUND, userId);
+        return;
+    }
+}
+
+void BundleActiveAppStateObserver::OnProcessDied(const ProcessData &processData)
+{
+    if (!ValidateProcessData(processData)) {
+        return;
+    }
+
+    if (processData.extensionType != AppExecFwk::ExtensionAbilityType::UNSPECIFIED) {
+        return;
+    }
+
+    int32_t userId = -1;
+    OHOS::ErrCode ret = BundleActiveAccountHelper::GetUserId(processData.uid, userId);
+    if (ret != ERR_OK || userId == -1) {
+        BUNDLE_ACTIVE_LOGI("GetUserId failed bunldeName:%{public}s, uid:%{public}d, ret:%{public}d",
+            processData.bundleName.c_str(), processData.uid, ret);
+        return;
+    }
+
+    ReportAppEvent(processData.bundleName, processData.uid,
+        BundleActiveEvent::APP_BACKGROUND, userId);
+}
+
 bool BundleActiveAppStateObserver::ValidateAbilityTypeData(const AbilityStateData &abilityStateData)
 {
     if (!ValidateAbilityStateData(abilityStateData)) {
@@ -105,6 +158,22 @@ bool BundleActiveAppStateObserver::ShouldProcessForegroundEvent(
     }
     BUNDLE_ACTIVE_LOGW("ShouldProcessForegroundEvent: no visibility window, skip event");
     return false;
+}
+
+void BundleActiveAppStateObserver::ReportAppEvent(const std::string& bundleName, int32_t uid,
+    int32_t eventId, int32_t userId)
+{
+    BundleActiveReportHandlerObject handlerObj(userId, "");
+    BundleActiveEvent event(bundleName, bundleName, "", "", uid);
+    event.eventId_ = eventId;
+    event.timeStamp_ = MiscServices::TimeServiceClient::GetInstance()->GetBootTimeMs();
+    handlerObj.event_ = event;
+    BUNDLE_ACTIVE_LOGI("ReportAppEvent %{public}s", handlerObj.ToString().c_str());
+    auto reportHandler = BundleActiveReportController::GetInstance().GetBundleReportHandler();
+    if (reportHandler != nullptr) {
+        reportHandler->SendEvent(BundleActiveReportHandler::MSG_REPORT_EVENT,
+            std::make_shared<BundleActiveReportHandlerObject>(handlerObj));
+    }
 }
 }  // namespace DeviceUsageStats
 }  // namespace OHOS

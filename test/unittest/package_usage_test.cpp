@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024  Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -161,6 +161,26 @@ HWTEST_F(PackageUsageTest, PackageUsageTest_UpdateAbility_001, Function | Medium
     eventId = BundleActiveEvent::ABILITY_STOP;
     packageStats->UpdateAbility(timeStamp, eventId, abilityId);
     EXPECT_NE(packageStats, nullptr);
+}
+
+/*
+ * @tc.name: PackageUsageTest_UpdateApp_001
+ * @tc.desc: UpdateApp
+ * @tc.type: FUNC
+ * @tc.require: issues#480
+ */
+HWTEST_F(PackageUsageTest, PackageUsageTest_UpdateApp_001, Function | MediumTest | TestSize.Level0)
+{
+    auto packageStats = std::make_shared<BundleActivePackageStats>();
+    int32_t uid = 30000000;
+    int64_t timeStamp = 20000000000000;
+    int32_t eventId = BundleActiveEvent::APP_FOREGROUND;
+    packageStats->UpdateApp(timeStamp, eventId, uid);
+    EXPECT_TRUE(packageStats->HasFrontApp());
+
+    eventId = BundleActiveEvent::APP_BACKGROUND;
+    packageStats->UpdateApp(timeStamp, eventId, uid);
+    EXPECT_FALSE(packageStats->HasFrontApp());
 }
 
 /*
