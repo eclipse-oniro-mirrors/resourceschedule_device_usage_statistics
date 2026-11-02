@@ -153,17 +153,15 @@ void BundleActivePackageStats::UpdateApp(const int64_t timeStamp, const int32_t 
     // The timestamp parameter is currently unused.
     // It is retained for consistency with other Update* series functions and for future extensibility.
     auto it = appForegrounds_.find(uid);
-    if (it != appForegrounds_.end() && it->second == eventId) {
+    if (eventId == BundleActiveEvent::APP_FOREGROUND && it == appForegrounds_.end()) {
+        appForegrounds_[uid] = eventId;
         return;
     }
 
-    switch (eventId) {
-        case BundleActiveEvent::APP_FOREGROUND:
-        case BundleActiveEvent::APP_BACKGROUND:
-            appForegrounds_[uid] = eventId;
-            break;
-        default:
-            break;
+    if (eventId == BundleActiveEvent::APP_BACKGROUND &&
+        it != appForegrounds_.end() && it->second == BundleActiveEvent::APP_FOREGROUND) {
+        appForegrounds_.erase(it);
+        return;
     }
 }
 
