@@ -119,6 +119,10 @@ void BundleActiveAppStateObserver::OnProcessDied(const ProcessData &processData)
         return;
     }
 
+    if (processData.extensionType != AppExecFwk::ExtensionAbilityType::UNSPECIFIED) {
+        return;
+    }
+
     int32_t userId = -1;
     OHOS::ErrCode ret = BundleActiveAccountHelper::GetUserId(processData.uid, userId);
     if (ret != ERR_OK || userId == -1) {
