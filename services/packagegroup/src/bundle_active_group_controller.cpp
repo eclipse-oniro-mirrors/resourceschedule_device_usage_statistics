@@ -289,7 +289,6 @@ void BundleActiveGroupController::ReportEvent(const BundleActiveEvent& event, co
         return;
     }
     if (IsBundleInstalled(event.bundleName_, userId) == false) {
-        BUNDLE_ACTIVE_LOGE("Report an uninstalled package event, return!");
         return;
     }
     int32_t eventId = event.eventId_;

@@ -486,7 +486,6 @@ ErrCode BundleActiveUserService::QueryBundleStatsInfos(std::vector<BundleActiveP
 ErrCode BundleActiveUserService::QueryBundleEvents(std::vector<BundleActiveEvent>& bundleActiveEvent,
     const int64_t beginTime, const int64_t endTime, const int32_t userId, const std::string& bundleName)
 {
-    BUNDLE_ACTIVE_LOGI("QueryBundleEvents called");
     std::lock_guard<ffrt::recursive_mutex> lock(statsMutex_);
     auto currentStats = currentStats_[BundleActivePeriodStats::PERIOD_DAILY];
     if (currentStats == nullptr) {
@@ -496,7 +495,7 @@ ErrCode BundleActiveUserService::QueryBundleEvents(std::vector<BundleActiveEvent
     if (beginTime >= currentStats->endTime_) {
         return ERR_QUERY_TIME_OUT_OF_RANGE;
     }
-    BUNDLE_ACTIVE_LOGI("Query event bundle name is %{public}s", bundleName.c_str());
+    BUNDLE_ACTIVE_LOGD("Query event bundle name is %{public}s", bundleName.c_str());
     bundleActiveEvent = database_.QueryDatabaseEvents(beginTime, endTime, userId, bundleName);
     PrintInMemEventStats(debugUserService_);
     if (currentStats->endTime_ == 0) {
@@ -517,7 +516,7 @@ ErrCode BundleActiveUserService::QueryBundleEvents(std::vector<BundleActiveEvent
             }
         }
     }
-    BUNDLE_ACTIVE_LOGI("QueryBundleEvents result in db and memory is %{public}zu", bundleActiveEvent.size());
+    BUNDLE_ACTIVE_LOGD("QueryBundleEvents result in db and memory is %{public}zu", bundleActiveEvent.size());
     return ERR_OK;
 }
 
