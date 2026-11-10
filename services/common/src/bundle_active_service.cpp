@@ -501,7 +501,7 @@ ErrCode BundleActiveService::QueryBundleEvents(std::vector<BundleActiveEvent>& b
         }
 // LCOV_EXCL_STOP
     }
-    BUNDLE_ACTIVE_LOGI("QueryBundleEvents userid is %{public}d", userId);
+    BUNDLE_ACTIVE_LOGD("QueryBundleEvents userid is %{public}d", userId);
     ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
     if (ret == ERR_OK) {
         ret = bundleActiveCore_->QueryBundleEvents(bundleActiveEvents, userId, beginTime, endTime, "");
