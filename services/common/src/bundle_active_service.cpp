@@ -318,9 +318,9 @@ ErrCode BundleActiveService::ReportEvent(const BundleActiveEvent& event, int32_t
 
     AccessToken::NativeTokenInfo callingTokenInfo;
     AccessToken::AccessTokenKit::GetNativeTokenInfo(tokenId, callingTokenInfo);
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     BUNDLE_ACTIVE_LOGD("calling process name is %{public}s, uid is %{public}d",
-        callingTokenInfo.processName.c_str(), callingUid);
+        callingTokenInfo.processName.c_str(), callingAppUid);
     if (callingTokenInfo.processName != PERMITTED_PROCESS_NAME_FOUNDATION &&
         callingTokenInfo.processName != PERMITTED_PROCESS_NAME_SUBFOUNDATION &&
         callingTokenInfo.processName != PERMITTED_PROCESS_NAME_RSS) {
@@ -348,16 +348,16 @@ ErrCode BundleActiveService::ReportEvent(const BundleActiveEvent& event, int32_t
 ErrCode BundleActiveService::IsBundleIdle(bool& isBundleIdle, const std::string& bundleName, int32_t userId)
 {
     // get uid
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
     ErrCode ret = ERR_OK;
     std::string callingBundleName = "";
-    BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingUid, callingBundleName);
-    BUNDLE_ACTIVE_LOGI("UID is %{public}d, bundle name is %{public}s", callingUid, callingBundleName.c_str());
+    BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingAppUid, callingBundleName);
+    BUNDLE_ACTIVE_LOGI("UID is %{public}d, bundle name is %{public}s", callingAppUid, callingBundleName.c_str());
     // get user id
     int32_t result = -1;
     if (userId == -1) {
-        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (ret != ERR_OK || userId == -1) {
             return ret;
@@ -375,7 +375,7 @@ ErrCode BundleActiveService::IsBundleIdle(bool& isBundleIdle, const std::string&
         result = bundleActiveCore_->IsBundleIdle(bundleName, userId);
 // LCOV_EXCL_STOP
     } else {
-        ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+        ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
         if (ret == ERR_OK) {
             result = bundleActiveCore_->IsBundleIdle(bundleName, userId);
         } else {
@@ -394,7 +394,7 @@ ErrCode BundleActiveService::IsBundleIdle(bool& isBundleIdle, const std::string&
 
 ErrCode BundleActiveService::IsBundleUsePeriod(bool& IsUsePeriod, const std::string& bundleName, int32_t userId)
 {
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
     auto ret = CheckNativePermission(tokenId);
 // LCOV_EXCL_START
@@ -403,7 +403,7 @@ ErrCode BundleActiveService::IsBundleUsePeriod(bool& IsUsePeriod, const std::str
     }
 // LCOV_EXCL_STOP
     if (userId == -1) {
-        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (ret != ERR_OK || userId == -1) {
             return ret;
@@ -419,11 +419,11 @@ ErrCode BundleActiveService::QueryBundleStatsInfoByInterval(std::vector<BundleAc
     const int32_t intervalType, const int64_t beginTime, const int64_t endTime, int32_t userId)
 {
     BUNDLE_ACTIVE_LOGD("QueryBundleStatsInfoByInterval stats called, intervaltype is %{public}d", intervalType);
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
     ErrCode ret = ERR_OK;
     if (userId == -1) {
-        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (ret != ERR_OK || userId == -1) {
             return ret;
@@ -431,7 +431,7 @@ ErrCode BundleActiveService::QueryBundleStatsInfoByInterval(std::vector<BundleAc
 // LCOV_EXCL_STOP
     }
     BUNDLE_ACTIVE_LOGI("QueryBundleStatsInfos user id is %{public}d", userId);
-    ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
     if (ret != ERR_OK) {
         return ret;
     }
@@ -491,10 +491,10 @@ ErrCode BundleActiveService::QueryBundleEvents(std::vector<BundleActiveEvent>& b
     }
     size_t reserveCount = static_cast<size_t>(maxNum);
     ErrCode ret = ERR_OK;
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
     if (userId == -1) {
-        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (ret != ERR_OK || userId == -1) {
             return ret;
@@ -502,7 +502,7 @@ ErrCode BundleActiveService::QueryBundleEvents(std::vector<BundleActiveEvent>& b
 // LCOV_EXCL_STOP
     }
     BUNDLE_ACTIVE_LOGD("QueryBundleEvents userid is %{public}d", userId);
-    ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
     if (ret == ERR_OK) {
         ret = bundleActiveCore_->QueryBundleEvents(bundleActiveEvents, userId, beginTime, endTime, "");
         DeleteOutOfLimitEvents(bundleActiveEvents, reserveCount);
@@ -519,11 +519,11 @@ ErrCode BundleActiveService::QueryBundleEventsByFilter(std::vector<BundleActiveE
     }
     size_t reserveCount = static_cast<size_t>(filter.maxNum_);
     ErrCode ret = ERR_OK;
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
     int32_t userId = filter.userId_;
     if (userId == -1) {
-        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (ret != ERR_OK || userId == -1) {
             return ret;
@@ -532,7 +532,7 @@ ErrCode BundleActiveService::QueryBundleEventsByFilter(std::vector<BundleActiveE
     }
     BUNDLE_ACTIVE_LOGI("QueryBundleEventsByFilter userid is %{public}d, eventIds size is %{public}zu", userId,
         filter.eventIds_.size());
-    ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
     if (ret == ERR_OK) {
         ret = bundleActiveCore_->QueryBundleEvents(bundleActiveEvents, userId, filter.beginTime_, filter.endTime_,
             "", filter.eventIds_);
@@ -546,10 +546,10 @@ ErrCode BundleActiveService::QueryHighFrequencyPeriodBundle(
     std::vector<BundleActiveHighFrequencyPeriod>& appFreqHours, int32_t userId)
 {
     ErrCode ret = ERR_OK;
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
     if (userId == -1) {
-        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (ret != ERR_OK || userId == -1) {
             return ret;
@@ -557,7 +557,7 @@ ErrCode BundleActiveService::QueryHighFrequencyPeriodBundle(
 // LCOV_EXCL_STOP
     }
     BUNDLE_ACTIVE_LOGI("QueryHighFrequencyPeriodBundle userid is %{public}d", userId);
-    ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
 // LCOV_EXCL_START
     if (ret == ERR_OK) {
         ret = bundleActiveCore_->QueryHighFrequencyPeriodBundle(appFreqHours, userId);
@@ -571,10 +571,10 @@ ErrCode BundleActiveService::QueryBundleTodayLatestUsedTime(
     int64_t& latestUsedTime, const std::string& bundleName, int32_t userId)
 {
     ErrCode ret = ERR_OK;
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
     if (userId == -1) {
-        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (ret != ERR_OK || userId == -1) {
             return ret;
@@ -582,7 +582,7 @@ ErrCode BundleActiveService::QueryBundleTodayLatestUsedTime(
 // LCOV_EXCL_STOP
     }
     BUNDLE_ACTIVE_LOGI("QueryBundleTodayLatestUsedTime userid is %{public}d", userId);
-    ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
 // LCOV_EXCL_START
     if (ret != ERR_OK) {
         return ret;
@@ -607,10 +607,10 @@ ErrCode BundleActiveService::QueryBundleTodayLatestUsedTime(
 ErrCode BundleActiveService::SetAppGroup(const std::string& bundleName, int32_t newGroup, int32_t userId)
 {
     ErrCode ret = ERR_OK;
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     bool isFlush = false;
     if (userId == -1) {
-        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (ret != ERR_OK || userId == -1) {
             return ERR_SYSTEM_ABILITY_SUPPORT_FAILED;
@@ -621,13 +621,13 @@ ErrCode BundleActiveService::SetAppGroup(const std::string& bundleName, int32_t 
     BUNDLE_ACTIVE_LOGI("SetAppGroup userId is %{public}d", userId);
 
     std::string localBundleName = "";
-    BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingUid, localBundleName);
+    BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingAppUid, localBundleName);
     if (localBundleName == bundleName) {
         BUNDLE_ACTIVE_LOGI("SetAppGroup can not set its bundleName");
         return ERR_PERMISSION_DENIED;
     }
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
-    ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
 // LCOV_EXCL_START
     if (ret == ERR_OK) {
         ret = bundleActiveCore_->SetAppGroup(bundleName, newGroup, userId, isFlush);
@@ -640,12 +640,12 @@ ErrCode BundleActiveService::QueryBundleStatsInfos(std::vector<BundleActivePacka
     const int32_t intervalType, const int64_t beginTime, const int64_t endTime)
 {
     // get uid
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
-    BUNDLE_ACTIVE_LOGD("UID is %{public}d", callingUid);
+    BUNDLE_ACTIVE_LOGD("UID is %{public}d", callingAppUid);
     // get userid
     int32_t userId = -1;
-    ErrCode ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+    ErrCode ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
     if (ret != ERR_OK || userId == -1) {
         return ret;
@@ -654,8 +654,8 @@ ErrCode BundleActiveService::QueryBundleStatsInfos(std::vector<BundleActivePacka
     std::vector<BundleActivePackageStats> tempPackageStats;
     BUNDLE_ACTIVE_LOGD("QueryBundleStatsInfos userid is %{public}d", userId);
     std::string bundleName = "";
-    BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingUid, bundleName);
-    ErrCode isSystemAppAndHasPermission = CheckBundleIsSystemAppAndHasPermission(callingUid, tokenId);
+    BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingAppUid, bundleName);
+    ErrCode isSystemAppAndHasPermission = CheckBundleIsSystemAppAndHasPermission(callingAppUid, tokenId);
     if (!bundleName.empty() && isSystemAppAndHasPermission == ERR_OK) {
 // LCOV_EXCL_START
         int32_t convertedIntervalType = ConvertIntervalType(intervalType);
@@ -674,9 +674,9 @@ ErrCode BundleActiveService::QueryHighFrequencyUsageBundleInfos(std::vector<Bund
         return ERR_PARAM_ERROR;
     }
     // get uid
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
-    int32_t ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    int32_t ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
     if (ret != ERR_OK) {
         BUNDLE_ACTIVE_LOGE("no premission.");
         return ERR_PERMISSION_DENIED;
@@ -710,14 +710,14 @@ ErrCode BundleActiveService::QueryCurrentBundleEvents(std::vector<BundleActiveEv
     }
     size_t reserveCount = static_cast<size_t>(maxNum);
     // get uid
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
-    BUNDLE_ACTIVE_LOGD("QueryCurrentBundleEvents UID is %{public}d", callingUid);
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
+    BUNDLE_ACTIVE_LOGD("QueryCurrentBundleEvents UID is %{public}d", callingAppUid);
     // get userid
     int32_t userId = -1;
-    ErrCode ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+    ErrCode ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
     if (ret == ERR_OK && userId != -1) {
         std::string bundleName = "";
-        BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingUid, bundleName);
+        BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingAppUid, bundleName);
 // LCOV_EXCL_START
         if (!bundleName.empty()) {
             if (!Security::AccessToken::TokenIdKit::IsSystemAppByFullTokenID(IPCSkeleton::GetCallingFullTokenID())) {
@@ -738,11 +738,11 @@ ErrCode BundleActiveService::QueryCurrentBundleEvents(std::vector<BundleActiveEv
 ErrCode BundleActiveService::QueryAppGroup(int32_t& appGroup, const std::string& bundleName, int32_t userId)
 {
     // get uid
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
-    BUNDLE_ACTIVE_LOGD("QueryAppGroup UID is %{public}d", callingUid);
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
+    BUNDLE_ACTIVE_LOGD("QueryAppGroup UID is %{public}d", callingAppUid);
     ErrCode ret = ERR_OK;
     if (userId == -1) {
-        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        ret = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (ret != ERR_OK || userId == -1) {
             return ERR_SYSTEM_ABILITY_SUPPORT_FAILED;
@@ -751,7 +751,7 @@ ErrCode BundleActiveService::QueryAppGroup(int32_t& appGroup, const std::string&
     }
     if (bundleName.empty()) {
         std::string localBundleName = "";
-        BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingUid, localBundleName);
+        BundleActiveBundleMgrHelper::GetInstance()->GetNameForUid(callingAppUid, localBundleName);
         if (!Security::AccessToken::TokenIdKit::IsSystemAppByFullTokenID(IPCSkeleton::GetCallingFullTokenID())) {
             BUNDLE_ACTIVE_LOGE("%{public}s is not system app", localBundleName.c_str());
             return ERR_NOT_SYSTEM_APP;
@@ -761,7 +761,7 @@ ErrCode BundleActiveService::QueryAppGroup(int32_t& appGroup, const std::string&
 // LCOV_EXCL_STOP
     } else {
         AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
-        ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+        ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
         if (ret == ERR_OK) {
             ret = bundleActiveCore_->QueryAppGroup(appGroup, bundleName, userId);
         }
@@ -776,9 +776,9 @@ ErrCode BundleActiveService::RegisterAppGroupCallBack(const sptr<IAppGroupCallba
         return ERR_MEMORY_OPERATION_FAILED;
     }
 // LCOV_EXCL_STOP
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
-    ErrCode ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    ErrCode ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
     if (ret == ERR_OK) {
         ret = bundleActiveCore_->RegisterAppGroupCallBack(tokenId, observer);
     }
@@ -790,9 +790,9 @@ ErrCode BundleActiveService::UnRegisterAppGroupCallBack(const sptr<IAppGroupCall
     if (!bundleActiveCore_) {
         return ERR_MEMORY_OPERATION_FAILED;
     }
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
-    ErrCode ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    ErrCode ret = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
     if (ret == ERR_OK) {
         ret = bundleActiveCore_->UnRegisterAppGroupCallBack(tokenId, observer);
     }
@@ -868,9 +868,9 @@ ErrCode BundleActiveService::QueryModuleUsageRecords(int32_t maxNum, std::vector
         BUNDLE_ACTIVE_LOGE("MaxNum is Invalid!");
         return ERR_FIND_APP_USAGE_RECORDS_FAILED;
     }
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     if (userId == -1) {
-        errCode = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        errCode = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (errCode != ERR_OK || userId == -1) {
             return errCode;
@@ -879,7 +879,7 @@ ErrCode BundleActiveService::QueryModuleUsageRecords(int32_t maxNum, std::vector
     }
     BUNDLE_ACTIVE_LOGI("QueryModuleUsageRecords userid is %{public}d", userId);
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
-    errCode = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    errCode = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
 // LCOV_EXCL_START
     if (errCode == ERR_OK) {
         errCode = bundleActiveCore_->QueryModuleUsageRecords(maxNum, results, userId);
@@ -894,10 +894,10 @@ ErrCode BundleActiveService::QueryModuleUsageRecords(int32_t maxNum, std::vector
 ErrCode BundleActiveService::QueryDeviceEventStats(int64_t beginTime, int64_t endTime,
     std::vector<BundleActiveEventStats>& eventStats, int32_t userId)
 {
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
     ErrCode errCode = ERR_OK;
     if (userId == -1) {
-        errCode = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        errCode = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (errCode != ERR_OK || userId == -1) {
             return errCode;
@@ -906,7 +906,7 @@ ErrCode BundleActiveService::QueryDeviceEventStats(int64_t beginTime, int64_t en
     }
     BUNDLE_ACTIVE_LOGI("QueryDeviceEventStats userid is %{public}d", userId);
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
-    errCode = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    errCode = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
     if (errCode == ERR_OK) {
         errCode = bundleActiveCore_->QueryDeviceEventStats(beginTime, endTime, eventStats, userId);
     }
@@ -917,12 +917,12 @@ ErrCode BundleActiveService::QueryDeviceEventStats(int64_t beginTime, int64_t en
 ErrCode BundleActiveService::QueryNotificationEventStats(int64_t beginTime, int64_t endTime,
     std::vector<BundleActiveEventStats>& eventStats, int32_t userId)
 {
-    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
-    BUNDLE_ACTIVE_LOGD("QueryNotificationEventStats UID is %{public}d", callingUid);
+    int32_t callingAppUid = OHOS::IPCSkeleton::GetCallingAppUid();
+    BUNDLE_ACTIVE_LOGD("QueryNotificationEventStats UID is %{public}d", callingAppUid);
     // get userid when userId is -1
     ErrCode errCode = ERR_OK;
     if (userId == -1) {
-        errCode = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+        errCode = BundleActiveAccountHelper::GetUserId(callingAppUid, userId);
 // LCOV_EXCL_START
         if (errCode != ERR_OK || userId == -1) {
             return errCode;
@@ -931,7 +931,7 @@ ErrCode BundleActiveService::QueryNotificationEventStats(int64_t beginTime, int6
     }
     BUNDLE_ACTIVE_LOGI("QueryNotificationEventStats userid is %{public}d", userId);
     AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
-    errCode = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    errCode = CheckSystemAppOrNativePermission(callingAppUid, tokenId);
     if (errCode == ERR_OK) {
         errCode = bundleActiveCore_->QueryNotificationEventStats(beginTime, endTime, eventStats, userId);
     }
