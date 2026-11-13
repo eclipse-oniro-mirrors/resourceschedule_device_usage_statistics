@@ -419,11 +419,16 @@ void BundleActiveCore::RestoreToDatabase(const int32_t userId)
     event.eventId_ = BundleActiveEvent::FLUSH;
     event.timeStamp_ = BundleActiveUtil::GetSystemTimeMs();
     event.abilityId_ = "";
-    auto it = userStatServices_.find(userId);
-    if (it != userStatServices_.end()) {
-        it->second->ReportEvent(event);
+    for (const auto& it : userStatServices_) {
+        std::shared_ptr<BundleActiveUserService> service = it.second;
+        if (service == nullptr) {
+            BUNDLE_ACTIVE_LOGI("service in BundleActiveCore::RestoreToDatabase() is null");
+            continue;
+        }
+        BUNDLE_ACTIVE_LOGI("RestoreToDatabase userid is %{public}d ", it.first);
+        service->ReportEvent(event);
+        RestoreToDatabaseLocked(it.first);
     }
-    RestoreToDatabaseLocked(userId);
     std::shared_ptr<BundleActiveCore> bundleActiveCore = shared_from_this();
     ffrt::submit([bundleActiveCore]() {
         if (bundleActiveCore == nullptr) {
@@ -1183,4 +1188,3 @@ bool BundleActiveCore::IsWindowVisibilityEnable()
 }
 }  // namespace DeviceUsageStats
 }  // namespace OHOS
-

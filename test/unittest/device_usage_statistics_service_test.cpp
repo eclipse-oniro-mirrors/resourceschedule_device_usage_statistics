@@ -2003,20 +2003,103 @@ HWTEST_F(DeviceUsageStatisticsServiceTest, DeviceUsageStatisticsServiceTest_Rest
 }
 
 /*
- * @tc.name: DeviceUsageStatisticsServiceTest_ProcessDataSize_001
- * @tc.desc: RestoreToDatabase
+ * @tc.name: DeviceUsageStatisticsServiceTest_RestoreToDatabase_003
+ * @tc.desc: RestoreToDatabase flushes all users in userStatServices_ even if only one userId is passed
  * @tc.type: FUNC
  * @tc.require: issuesIC2FBU
  */
-HWTEST_F(DeviceUsageStatisticsServiceTest, DeviceUsageStatisticsServiceTest_ProcessDataSize_001,
+HWTEST_F(DeviceUsageStatisticsServiceTest, DeviceUsageStatisticsServiceTest_RestoreToDatabase_003,
     Function | MediumTest | TestSize.Level0)
 {
-    auto bundleActiveCore = std::make_shared<BundleActiveCore>();
-    bundleActiveCore->Init();
-    bundleActiveCore->ProcessDataSize();
-    bundleActiveCore->bundleActiveConfigReader_->maxDataSize_ = 0;
-    bundleActiveCore->ProcessDataSize();
-    EXPECT_NE(bundleActiveCore, nullptr);
+    auto coreObject = std::make_shared<BundleActiveCore>();
+    coreObject->Init();
+    coreObject->InitBundleGroupController();
+    coreObject->percentUserSpaceLimit_ = 1;
+    int64_t timeStamp = 20000000000000;
+    int32_t userIdFirst = 100;
+    auto userServiceFirst = std::make_shared<BundleActiveUserService>(userIdFirst, *(coreObject.get()), false);
+    userServiceFirst->Init(timeStamp);
+    int32_t userIdSecond = 101;
+    auto userServiceSecond = std::make_shared<BundleActiveUserService>(userIdSecond, *(coreObject.get()), false);
+    userServiceSecond->Init(timeStamp);
+    BundleActiveEvent event;
+    userServiceFirst->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Clear();
+    userServiceFirst->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Insert(event);
+    userServiceFirst->statsChanged_ = true;
+    EXPECT_EQ(userServiceFirst->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Size(), 1);
+    userServiceSecond->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Clear();
+    userServiceSecond->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Insert(event);
+    userServiceSecond->statsChanged_ = true;
+    EXPECT_EQ(userServiceSecond->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Size(), 1);
+    coreObject->userStatServices_[userIdFirst] = userServiceFirst;
+    coreObject->userStatServices_[userIdSecond] = userServiceSecond;
+    coreObject->RestoreToDatabase(userIdFirst);
+    EXPECT_EQ(userServiceFirst->statsChanged_, false);
+    EXPECT_EQ(userServiceFirst->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Size(), 0);
+    EXPECT_EQ(userServiceSecond->statsChanged_, false);
+    EXPECT_EQ(userServiceSecond->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Size(), 0);
+}
+
+/*
+ * @tc.name: DeviceUsageStatisticsServiceTest_RestoreToDatabase_004
+ * @tc.desc: RestoreToDatabase flushes all cached users when the passed userId does not exist in userStatServices_
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(DeviceUsageStatisticsServiceTest, DeviceUsageStatisticsServiceTest_RestoreToDatabase_004,
+    Function | MediumTest | TestSize.Level0)
+{
+    auto coreObject = std::make_shared<BundleActiveCore>();
+    coreObject->Init();
+    coreObject->InitBundleGroupController();
+    coreObject->percentUserSpaceLimit_ = 1;
+    int32_t userId = 100;
+    auto userService = std::make_shared<BundleActiveUserService>(userId, *(coreObject.get()), false);
+    int64_t timeStamp = 20000000000000;
+    userService->Init(timeStamp);
+    BundleActiveEvent event;
+    userService->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Clear();
+    userService->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Insert(event);
+    userService->statsChanged_ = true;
+    EXPECT_EQ(userService->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Size(), 1);
+    coreObject->userStatServices_[userId] = userService;
+    int32_t userIdNotCached = 999;
+    coreObject->RestoreToDatabase(userIdNotCached);
+    EXPECT_EQ(userService->statsChanged_, false);
+    EXPECT_EQ(userService->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Size(), 0);
+}
+
+/*
+ * @tc.name: DeviceUsageStatisticsServiceTest_RestoreToDatabase_005
+ * @tc.desc: RestoreToDatabase skips null user services and still flushes the valid ones
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(DeviceUsageStatisticsServiceTest, DeviceUsageStatisticsServiceTest_RestoreToDatabase_005,
+    Function | MediumTest | TestSize.Level0)
+{
+    auto coreObject = std::make_shared<BundleActiveCore>();
+    coreObject->Init();
+    coreObject->InitBundleGroupController();
+    coreObject->percentUserSpaceLimit_ = 1;
+    coreObject->userStatServices_[100] = nullptr;
+    coreObject->userStatServices_[103] = nullptr;
+    int32_t userIdValid = 101;
+    auto userService = std::make_shared<BundleActiveUserService>(userIdValid, *(coreObject.get()), false);
+    int64_t timeStamp = 20000000000000;
+    userService->Init(timeStamp);
+    BundleActiveEvent event;
+    userService->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Clear();
+    userService->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Insert(event);
+    userService->statsChanged_ = true;
+    EXPECT_EQ(userService->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Size(), 1);
+    coreObject->userStatServices_[userIdValid] = userService;
+    coreObject->RestoreToDatabase(userIdValid);
+    EXPECT_EQ(static_cast<int32_t>(coreObject->userStatServices_.size()), 3);
+    EXPECT_EQ(coreObject->userStatServices_[100], nullptr);
+    EXPECT_EQ(coreObject->userStatServices_[103], nullptr);
+    EXPECT_EQ(userService->statsChanged_, false);
+    EXPECT_EQ(userService->currentStats_[BundleActivePeriodStats::PERIOD_DAILY]->events_.Size(), 0);
 }
 
 /*
