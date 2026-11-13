@@ -335,6 +335,57 @@ void BundleActiveUsageDatabase::HandleAllTableName(const uint32_t databaseType,
     bundleActiveResult->Close();
 }
 
+std::vector<int64_t> BundleActiveUsageDatabase::GetDistinctEventDays()
+{
+    std::vector<int64_t> distinctDays;
+    if (eventTableName_ == UNKNOWN_TABLE_NAME) {
+        return distinctDays;
+    }
+    int64_t eventTableTime = ParseStartTime(eventTableName_);
+    if (eventTableTime <= 0) {
+        return distinctDays;
+    }
+    // Query distinct relative day buckets. timeStamp is stored relative to eventTableTime.
+    // so dayIndex = (timeStamp) / ONE_DAY_TIME gives the day offset from the table base day.
+    string querySql = "select distinct timeStamp / " + to_string(ONE_DAY_TIME) + " as dayOffset from " +
+        eventTableName_ + " order by dayOffset desc";
+    auto resultSet = QueryStatsInfoByStep(EVENT_DATABASE_INDEX, querySql, {});
+    if (resultSet == nullptr) {
+        BUNDLE_ACTIVE_LOGE("get distinct event days fail, query returned nullptr");
+        return distinctDays;
+    }
+    int32_t offsetIndex = 0;
+    if (resultSet->GetColumnIndex("dayOffset", offsetIndex) != NativeRdb::E_OK) {
+        BUNDLE_ACTIVE_LOGE("get distinct event days fail, GetColumnIndex returned error");
+        resultSet->Close();
+        return distinctDays;
+    }
+    while (resultSet->GoToNextRow() == NativeRdb::E_OK) {
+        int64_t dayOffset = 0;
+        resultSet->GetLong(offsetIndex, dayOffset);
+        distinctDays.push_back(dayOffset);
+    }
+    resultSet->Close();
+    return distinctDays;
+}
+
+int64_t BundleActiveUsageDatabase::CalcEventDeleteTimePoint(int32_t keepDays, int64_t eventTableTime)
+{
+    if (keepDays <= 0 || eventTableTime <= 0) {
+        return 0;
+    }
+    std::vector<int64_t> distinctDays = GetDistinctEventDays();
+    if (static_cast<int32_t>(distinctDays.size()) < keepDays) {
+        // Effective days within retention window, nothing to delete.
+        return 0;
+    }
+    // distinctDays is descending (most recent first). The day at index `keeyDays` is the
+    // first day to be removed: we delete everything strictly before its start.
+    int64_t removedDayOffset = distinctDays.at(static_cast<size_t>(keepDays - 1));
+    int64_t removedDayStart = removedDayOffset * ONE_DAY_TIME;
+    return removedDayStart;
+}
+
 void BundleActiveUsageDatabase::DeleteExcessiveTableData(uint32_t databaseType)
 {
     if (databaseType >= 0 && databaseType < SORTED_TABLE_ARRAY_NUMBER) {
@@ -354,7 +405,7 @@ void BundleActiveUsageDatabase::DeleteExcessiveTableData(uint32_t databaseType)
                 "database type %{public}d", deleteNumber, databaseType);
         }
     } else if (databaseType == EVENT_DATABASE_INDEX) {
-        // 删除多余数据
+        // 删除多余数据, 保留7天有效数据, 某天没有数据时跳过该天
         if ((eventTableName_ == UNKNOWN_TABLE_NAME) || (eventBeginTime_ == EVENT_BEGIN_TIME_INITIAL_VALUE)) {
             return;
         }
@@ -363,7 +414,7 @@ void BundleActiveUsageDatabase::DeleteExcessiveTableData(uint32_t databaseType)
         if (debugDatabase_) {
             deleteTimePoint = eventBeginTime_ - SIX_DAY_IN_MILLIS_MAX_DEBUG - eventTableTime;
         } else {
-            deleteTimePoint = eventBeginTime_ - SEVEN_DAY_IN_MILLIS_MAX - eventTableTime;
+            deleteTimePoint = CalcEventDeleteTimePoint(NUM_DAY_ONE_WEEK, eventTableTime);
         }
         if (deleteTimePoint <= 0) {
             return;
