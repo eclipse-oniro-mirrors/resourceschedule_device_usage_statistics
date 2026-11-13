@@ -721,7 +721,8 @@ ErrCode BundleActiveCore::QueryBundleStatsInfos(std::vector<BundleActivePackageS
 }
 
 ErrCode BundleActiveCore::QueryBundleEvents(std::vector<BundleActiveEvent>& bundleActiveEvent, const int32_t userId,
-    const int64_t beginTime, const int64_t endTime, std::string bundleName)
+    const int64_t beginTime, const int64_t endTime, std::string bundleName,
+    const std::vector<int32_t>& eventIds)
 {
     BUNDLE_ACTIVE_LOGD("QueryBundleEvents called");
     std::lock_guard<ffrt::mutex> lock(mutex_);
@@ -736,7 +737,7 @@ ErrCode BundleActiveCore::QueryBundleEvents(std::vector<BundleActiveEvent>& bund
     if (service == nullptr) {
         return ERR_MEMORY_OPERATION_FAILED;
     }
-    auto item = service->QueryBundleEvents(bundleActiveEvent, beginTime, endTime, userId, bundleName);
+    auto item = service->QueryBundleEvents(bundleActiveEvent, beginTime, endTime, userId, bundleName, eventIds);
     return item;
 }
 

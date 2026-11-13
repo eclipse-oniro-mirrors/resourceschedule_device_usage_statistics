@@ -57,7 +57,7 @@ public:
     std::vector<BundleActivePackageStats> QueryDatabaseUsageStats(int32_t databaseType, int64_t beginTime,
         int64_t endTime, int32_t userId, const std::string& bundleName = "");
     std::vector<BundleActiveEvent> QueryDatabaseEvents(int64_t beginTime, int64_t endTime, int32_t userId,
-        std::string bundleName);
+        std::string bundleName, const std::vector<int32_t>& eventIds = {});
     void PutDurationData(int64_t bootBasedDuration, int64_t screenOnDuration);
     std::pair<int64_t, int64_t> GetDurationData();
     void PutBundleHistoryData(int32_t userId, std::shared_ptr<std::map<std::string,
@@ -150,6 +150,8 @@ private:
     std::map<std::string, int64_t> GetAllBundleFirstUseTime(const int32_t userId);
     void CheckDatabaseFileAndTable();
     void InitEventTable(const int64_t currentTime);
+    std::string CombineSQL(const std::string& bundleName, const std::vector<int32_t>& eventIds,
+       std::vector<std::string>& queryCondition);
     std::vector<std::string> databaseFiles_;
     std::vector<std::vector<int64_t>> sortedTableArray_;
     std::map<std::string, std::shared_ptr<NativeRdb::RdbStore>> bundleActiveRdbStoreCache_;

@@ -57,6 +57,7 @@ ohos_shared_library("usagestatsinner") {
     "interfaces/innerkits/src/bundle_active_module_record.cpp",
     "interfaces/innerkits/src/bundle_active_package_stats.cpp",
     "interfaces/innerkits/src/bundle_active_high_frequency_period.cpp",
+    "interfaces/innerkits/src/bundle_active_event_filter.cpp",
   ]
   public_configs = [ ":usagestats_public_config" ]
   cflags_cc = [ "-fstack-protector-strong" ]
@@ -393,6 +394,7 @@ ohos_static_library("usagestatsinner_static") {
     "interfaces/innerkits/src/bundle_active_form_record.cpp",
     "interfaces/innerkits/src/bundle_active_module_record.cpp",
     "interfaces/innerkits/src/bundle_active_package_stats.cpp",
+    "interfaces/innerkits/src/bundle_active_event_filter.cpp",
   ]
   public_configs = [ ":usagestats_public_config" ]
   deps = [

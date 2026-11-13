@@ -1501,8 +1501,33 @@ vector<BundleActivePackageStats> BundleActiveUsageDatabase::QueryDatabaseUsageSt
     return databaseUsageStats;
 }
 
+std::string BundleActiveUsageDatabase::CombineSQL(const std::string& bundleName, const std::vector<int32_t>& eventIds,
+    std::vector<std::string>& queryCondition)
+{
+    string queryEventSql = "select * from " + eventTableName_ +
+        " where timeStamp >= ? and timeStamp <= ? and userId = ?";
+    if (!bundleName.empty()) {
+        queryCondition.push_back(bundleName);
+        queryEventSql += " and bundleName = ?";
+    }
+    if (!eventIds.empty()) {
+        string eventIdCondition = " and eventId in (";
+        for (size_t i = 0; i < eventIds.size(); i++) {
+            if (i > 0) {
+                eventIdCondition += ",";
+            }
+            eventIdCondition += "?";
+            queryCondition.push_back(to_string(eventIds[i]));
+        }
+        eventIdCondition += ")";
+        queryEventSql += eventIdCondition;
+    }
+    queryEventSql += " order by timeStamp asc";
+    return queryEventSql;
+}
+
 vector<BundleActiveEvent> BundleActiveUsageDatabase::QueryDatabaseEvents(int64_t beginTime, int64_t endTime,
-    int32_t userId, string bundleName)
+    int32_t userId, string bundleName, const vector<int32_t>& eventIds)
 {
     lock_guard<ffrt::mutex> lock(databaseMutex_);
     vector<BundleActiveEvent> databaseEvents;
@@ -1519,17 +1544,8 @@ vector<BundleActiveEvent> BundleActiveUsageDatabase::QueryDatabaseEvents(int64_t
     }
     queryCondition.push_back(to_string(endTime - eventTableTime));
     queryCondition.push_back(to_string(userId));
-    string queryEventSql;
-    if (bundleName.empty()) {
-        queryEventSql = "select * from " + eventTableName_ +
-            " where timeStamp >= ? and timeStamp <= ? and userId = ? order by timeStamp asc";
-    } else {
-        queryCondition.push_back(bundleName);
-        queryEventSql = "select * from " + eventTableName_ +
-            " where timeStamp >= ? and timeStamp <= ? and userId = ? and bundleName = ? order by timeStamp asc";
-    }
-    auto bundleActiveResult = QueryStatsInfoByStep(EVENT_DATABASE_INDEX,
-        queryEventSql, queryCondition);
+    string queryEventSql = CombineSQL(bundleName, eventIds, queryCondition);
+    auto bundleActiveResult = QueryStatsInfoByStep(EVENT_DATABASE_INDEX, queryEventSql, queryCondition);
     if (bundleActiveResult == nullptr) {
         return databaseEvents;
     }

@@ -70,7 +70,8 @@ public:
     ErrCode QueryBundleStatsInfos(std::vector<BundleActivePackageStats>& PackageStats, int32_t intervalType,
         const int64_t beginTime, const int64_t endTime, const int32_t userId, const std::string& bundleName);
     ErrCode QueryBundleEvents(std::vector<BundleActiveEvent>& bundleActiveEvent, const int64_t beginTime,
-        const int64_t endTime, const int32_t userId, const std::string& bundleName);
+        const int64_t endTime, const int32_t userId, const std::string& bundleName,
+        const std::vector<int32_t>& eventIds = {});
     int32_t QueryModuleUsageRecords(int32_t maxNum, std::vector<BundleActiveModuleRecord>& results);
     int32_t QueryDeviceEventStats(int64_t beginTime, int64_t endTime,
         std::vector<BundleActiveEventStats>& eventStats, int32_t userId);

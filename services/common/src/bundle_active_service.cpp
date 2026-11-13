@@ -511,6 +511,37 @@ ErrCode BundleActiveService::QueryBundleEvents(std::vector<BundleActiveEvent>& b
     return ret;
 }
 
+ErrCode BundleActiveService::QueryBundleEventsByFilter(std::vector<BundleActiveEvent>& bundleActiveEvents,
+    const BundleActiveEventFilter& filter)
+{
+    if (filter.maxNum_ <= 0 || static_cast<size_t>(filter.maxNum_) > QUERY_EVENT_MAX_RETURN_COUNT) {
+        return ERR_MAX_RECORDS_NUM_BIGER_THEN_ONE_THOUSAND;
+    }
+    size_t reserveCount = static_cast<size_t>(filter.maxNum_);
+    ErrCode ret = ERR_OK;
+    int32_t callingUid = OHOS::IPCSkeleton::GetCallingUid();
+    AccessToken::AccessTokenID tokenId = OHOS::IPCSkeleton::GetCallingTokenID();
+    int32_t userId = filter.userId_;
+    if (userId == -1) {
+        ret = BundleActiveAccountHelper::GetUserId(callingUid, userId);
+// LCOV_EXCL_START
+        if (ret != ERR_OK || userId == -1) {
+            return ret;
+        }
+// LCOV_EXCL_STOP
+    }
+    BUNDLE_ACTIVE_LOGI("QueryBundleEventsByFilter userid is %{public}d, eventIds size is %{public}zu", userId,
+        filter.eventIds_.size());
+    ret = CheckSystemAppOrNativePermission(callingUid, tokenId);
+    if (ret == ERR_OK) {
+        ret = bundleActiveCore_->QueryBundleEvents(bundleActiveEvents, userId, filter.beginTime_, filter.endTime_,
+            "", filter.eventIds_);
+        DeleteOutOfLimitEvents(bundleActiveEvents, reserveCount);
+        BUNDLE_ACTIVE_LOGI("QueryBundleEventsByFilter result is %{public}zu", bundleActiveEvents.size());
+    }
+    return ret;
+}
+
 ErrCode BundleActiveService::QueryHighFrequencyPeriodBundle(
     std::vector<BundleActiveHighFrequencyPeriod>& appFreqHours, int32_t userId)
 {

@@ -47,6 +47,7 @@ namespace DeviceUsageStats {
     constexpr int32_t FUZZ_CODE_14 = 14;
     constexpr int32_t FUZZ_CODE_15 = 15;
     constexpr int32_t FUZZ_CODE_16 = 16;
+    constexpr int32_t FUZZ_CODE_17 = 17;
 
     bool ReportEventFuzzTest(FuzzedDataProvider *provider)
     {
@@ -101,6 +102,20 @@ namespace DeviceUsageStats {
         int32_t userId = provider->ConsumeIntegral<int32_t>();
         bundleActiveService->QueryBundleEvents(bundleActiveEvent,
             beginTime, endTime, userId);
+        return true;
+    }
+
+    bool QueryBundleEventsByFilterFuzzTest(FuzzedDataProvider *provider)
+    {
+        std::vector<BundleActiveEvent> bundleActiveEvent;
+        BundleActiveEventFilter filter;
+        filter.beginTime_ = provider->ConsumeIntegral<int64_t>();
+        filter.endTime_ = provider->ConsumeIntegral<int64_t>();
+        filter.userId_ = provider->ConsumeIntegral<int32_t>();
+        filter.maxNum_ = provider->ConsumeIntegral<int32_t>();
+        int32_t eventId = provider->ConsumeIntegral<int32_t>();
+        filter.eventIds_.push_back(eventId);
+        bundleActiveService->QueryBundleEventsByFilter(bundleActiveEvent, filter);
         return true;
     }
 
@@ -223,7 +238,7 @@ namespace DeviceUsageStats {
 extern "C" int FuzzIBundleActiveService(FuzzedDataProvider &provider)
 {
     int code = provider.ConsumeIntegralInRange(
-        OHOS::DeviceUsageStats::FUZZ_CODE_0, OHOS::DeviceUsageStats::FUZZ_CODE_16);
+        OHOS::DeviceUsageStats::FUZZ_CODE_0, OHOS::DeviceUsageStats::FUZZ_CODE_17);
     switch (code) {
         case OHOS::DeviceUsageStats::FUZZ_CODE_0: {
             OHOS::DeviceUsageStats::ReportEventFuzzTest(&provider);
@@ -243,6 +258,10 @@ extern "C" int FuzzIBundleActiveService(FuzzedDataProvider &provider)
         }
         case OHOS::DeviceUsageStats::FUZZ_CODE_4: {
             OHOS::DeviceUsageStats::QueryBundleEventsFuzzTest(&provider);
+            break;
+        }
+        case OHOS::DeviceUsageStats::FUZZ_CODE_17: {
+            OHOS::DeviceUsageStats::QueryBundleEventsByFilterFuzzTest(&provider);
             break;
         }
         case OHOS::DeviceUsageStats::FUZZ_CODE_5: {

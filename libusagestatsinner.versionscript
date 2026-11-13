@@ -26,6 +26,7 @@
     *BundleActiveModuleRecord*;
     *BundleActivePackageStats*;
     *BundleActiveHighFrequencyPeriod*;
+    *BundleActiveEventFilter*;
   local:
     *;
 };
