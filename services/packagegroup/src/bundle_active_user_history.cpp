@@ -264,8 +264,9 @@ int32_t BundleActiveUserHistory::SetAppGroup(const string& bundleName, const int
     if (!isGroupChanged) {
         AppGroupCallbackInfo callbackInfo(
             userId, oldGroup, newGroup, oneBundleHistory->reasonInGroup_, bundleName);
-        if (!bundleActiveCore_.expired()) {
-            bundleActiveCore_.lock()->OnAppGroupChanged(callbackInfo);
+        std::shared_ptr<BundleActiveCore> bundleActiveCore = bundleActiveCore_.lock();
+        if (bundleActiveCore != nullptr) {
+            bundleActiveCore->OnAppGroupChanged(callbackInfo);
         }
     }
     return ERR_OK;
