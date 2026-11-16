@@ -20,6 +20,7 @@
 
 #include "app_mgr_interface.h"
 #include "ibundle_active_service.h"
+#include "bundle_active_event_filter.h"
 #include "bundle_active_service_stub.h"
 #include "bundle_active_core.h"
 #include "bundle_active_report_handler.h"
@@ -109,6 +110,17 @@ public:
      */
     ErrCode QueryBundleEvents(std::vector<BundleActiveEvent>& bundleActiveEvents, const int64_t beginTime,
         const int64_t endTime, int32_t userId, const int32_t maxNum = 1000) override;
+
+    /**
+     * @brief QueryBundleEventsByFilter, query events in specific time span for calling user with filter.
+     *
+     * @param bundleActiveEvents The result of QueryBundleEventsByFilter.
+     * @param filter query conditions, including userId, maxNum, beginTime, endTime and eventIds,
+     * if eventIds_ is empty, all events will be queried.
+     * @return errCode.
+     */
+    ErrCode QueryBundleEventsByFilter(std::vector<BundleActiveEvent>& bundleActiveEvents,
+        const BundleActiveEventFilter& filter) override;
 
     /**
      * @brief SetAppGroup, set specific bundle of specific user to a priority group.

@@ -419,11 +419,16 @@ void BundleActiveCore::RestoreToDatabase(const int32_t userId)
     event.eventId_ = BundleActiveEvent::FLUSH;
     event.timeStamp_ = BundleActiveUtil::GetSystemTimeMs();
     event.abilityId_ = "";
-    auto it = userStatServices_.find(userId);
-    if (it != userStatServices_.end()) {
-        it->second->ReportEvent(event);
+    for (const auto& it : userStatServices_) {
+        std::shared_ptr<BundleActiveUserService> service = it.second;
+        if (service == nullptr) {
+            BUNDLE_ACTIVE_LOGI("service in BundleActiveCore::RestoreToDatabase() is null");
+            continue;
+        }
+        BUNDLE_ACTIVE_LOGI("RestoreToDatabase userid is %{public}d ", it.first);
+        service->ReportEvent(event);
+        RestoreToDatabaseLocked(it.first);
     }
-    RestoreToDatabaseLocked(userId);
     std::shared_ptr<BundleActiveCore> bundleActiveCore = shared_from_this();
     ffrt::submit([bundleActiveCore]() {
         if (bundleActiveCore == nullptr) {
@@ -721,7 +726,8 @@ ErrCode BundleActiveCore::QueryBundleStatsInfos(std::vector<BundleActivePackageS
 }
 
 ErrCode BundleActiveCore::QueryBundleEvents(std::vector<BundleActiveEvent>& bundleActiveEvent, const int32_t userId,
-    const int64_t beginTime, const int64_t endTime, std::string bundleName)
+    const int64_t beginTime, const int64_t endTime, std::string bundleName,
+    const std::vector<int32_t>& eventIds)
 {
     BUNDLE_ACTIVE_LOGD("QueryBundleEvents called");
     std::lock_guard<ffrt::mutex> lock(mutex_);
@@ -736,7 +742,7 @@ ErrCode BundleActiveCore::QueryBundleEvents(std::vector<BundleActiveEvent>& bund
     if (service == nullptr) {
         return ERR_MEMORY_OPERATION_FAILED;
     }
-    auto item = service->QueryBundleEvents(bundleActiveEvent, beginTime, endTime, userId, bundleName);
+    auto item = service->QueryBundleEvents(bundleActiveEvent, beginTime, endTime, userId, bundleName, eventIds);
     return item;
 }
 
@@ -1182,4 +1188,3 @@ bool BundleActiveCore::IsWindowVisibilityEnable()
 }
 }  // namespace DeviceUsageStats
 }  // namespace OHOS
-

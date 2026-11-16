@@ -335,6 +335,57 @@ void BundleActiveUsageDatabase::HandleAllTableName(const uint32_t databaseType,
     bundleActiveResult->Close();
 }
 
+std::vector<int64_t> BundleActiveUsageDatabase::GetDistinctEventDays()
+{
+    std::vector<int64_t> distinctDays;
+    if (eventTableName_ == UNKNOWN_TABLE_NAME) {
+        return distinctDays;
+    }
+    int64_t eventTableTime = ParseStartTime(eventTableName_);
+    if (eventTableTime <= 0) {
+        return distinctDays;
+    }
+    // Query distinct relative day buckets. timeStamp is stored relative to eventTableTime.
+    // so dayIndex = (timeStamp) / ONE_DAY_TIME gives the day offset from the table base day.
+    string querySql = "select distinct timeStamp / " + to_string(ONE_DAY_TIME) + " as dayOffset from " +
+        eventTableName_ + " order by dayOffset desc";
+    auto resultSet = QueryStatsInfoByStep(EVENT_DATABASE_INDEX, querySql, {});
+    if (resultSet == nullptr) {
+        BUNDLE_ACTIVE_LOGE("get distinct event days fail, query returned nullptr");
+        return distinctDays;
+    }
+    int32_t offsetIndex = 0;
+    if (resultSet->GetColumnIndex("dayOffset", offsetIndex) != NativeRdb::E_OK) {
+        BUNDLE_ACTIVE_LOGE("get distinct event days fail, GetColumnIndex returned error");
+        resultSet->Close();
+        return distinctDays;
+    }
+    while (resultSet->GoToNextRow() == NativeRdb::E_OK) {
+        int64_t dayOffset = 0;
+        resultSet->GetLong(offsetIndex, dayOffset);
+        distinctDays.push_back(dayOffset);
+    }
+    resultSet->Close();
+    return distinctDays;
+}
+
+int64_t BundleActiveUsageDatabase::CalcEventDeleteTimePoint(int32_t keepDays, int64_t eventTableTime)
+{
+    if (keepDays <= 0 || eventTableTime <= 0) {
+        return 0;
+    }
+    std::vector<int64_t> distinctDays = GetDistinctEventDays();
+    if (static_cast<int32_t>(distinctDays.size()) < keepDays) {
+        // Effective days within retention window, nothing to delete.
+        return 0;
+    }
+    // distinctDays is descending (most recent first). The day at index `keeyDays` is the
+    // first day to be removed: we delete everything strictly before its start.
+    int64_t removedDayOffset = distinctDays.at(static_cast<size_t>(keepDays - 1));
+    int64_t removedDayStart = removedDayOffset * ONE_DAY_TIME;
+    return removedDayStart;
+}
+
 void BundleActiveUsageDatabase::DeleteExcessiveTableData(uint32_t databaseType)
 {
     if (databaseType >= 0 && databaseType < SORTED_TABLE_ARRAY_NUMBER) {
@@ -354,7 +405,7 @@ void BundleActiveUsageDatabase::DeleteExcessiveTableData(uint32_t databaseType)
                 "database type %{public}d", deleteNumber, databaseType);
         }
     } else if (databaseType == EVENT_DATABASE_INDEX) {
-        // 删除多余数据
+        // 删除多余数据, 保留7天有效数据, 某天没有数据时跳过该天
         if ((eventTableName_ == UNKNOWN_TABLE_NAME) || (eventBeginTime_ == EVENT_BEGIN_TIME_INITIAL_VALUE)) {
             return;
         }
@@ -363,7 +414,7 @@ void BundleActiveUsageDatabase::DeleteExcessiveTableData(uint32_t databaseType)
         if (debugDatabase_) {
             deleteTimePoint = eventBeginTime_ - SIX_DAY_IN_MILLIS_MAX_DEBUG - eventTableTime;
         } else {
-            deleteTimePoint = eventBeginTime_ - SEVEN_DAY_IN_MILLIS_MAX - eventTableTime;
+            deleteTimePoint = CalcEventDeleteTimePoint(NUM_DAY_ONE_WEEK, eventTableTime);
         }
         if (deleteTimePoint <= 0) {
             return;
@@ -1501,8 +1552,33 @@ vector<BundleActivePackageStats> BundleActiveUsageDatabase::QueryDatabaseUsageSt
     return databaseUsageStats;
 }
 
+std::string BundleActiveUsageDatabase::CombineSQL(const std::string& bundleName, const std::vector<int32_t>& eventIds,
+    std::vector<std::string>& queryCondition)
+{
+    string queryEventSql = "select * from " + eventTableName_ +
+        " where timeStamp >= ? and timeStamp <= ? and userId = ?";
+    if (!bundleName.empty()) {
+        queryCondition.push_back(bundleName);
+        queryEventSql += " and bundleName = ?";
+    }
+    if (!eventIds.empty()) {
+        string eventIdCondition = " and eventId in (";
+        for (size_t i = 0; i < eventIds.size(); i++) {
+            if (i > 0) {
+                eventIdCondition += ",";
+            }
+            eventIdCondition += "?";
+            queryCondition.push_back(to_string(eventIds[i]));
+        }
+        eventIdCondition += ")";
+        queryEventSql += eventIdCondition;
+    }
+    queryEventSql += " order by timeStamp asc";
+    return queryEventSql;
+}
+
 vector<BundleActiveEvent> BundleActiveUsageDatabase::QueryDatabaseEvents(int64_t beginTime, int64_t endTime,
-    int32_t userId, string bundleName)
+    int32_t userId, string bundleName, const vector<int32_t>& eventIds)
 {
     lock_guard<ffrt::mutex> lock(databaseMutex_);
     vector<BundleActiveEvent> databaseEvents;
@@ -1519,17 +1595,8 @@ vector<BundleActiveEvent> BundleActiveUsageDatabase::QueryDatabaseEvents(int64_t
     }
     queryCondition.push_back(to_string(endTime - eventTableTime));
     queryCondition.push_back(to_string(userId));
-    string queryEventSql;
-    if (bundleName.empty()) {
-        queryEventSql = "select * from " + eventTableName_ +
-            " where timeStamp >= ? and timeStamp <= ? and userId = ? order by timeStamp asc";
-    } else {
-        queryCondition.push_back(bundleName);
-        queryEventSql = "select * from " + eventTableName_ +
-            " where timeStamp >= ? and timeStamp <= ? and userId = ? and bundleName = ? order by timeStamp asc";
-    }
-    auto bundleActiveResult = QueryStatsInfoByStep(EVENT_DATABASE_INDEX,
-        queryEventSql, queryCondition);
+    string queryEventSql = CombineSQL(bundleName, eventIds, queryCondition);
+    auto bundleActiveResult = QueryStatsInfoByStep(EVENT_DATABASE_INDEX, queryEventSql, queryCondition);
     if (bundleActiveResult == nullptr) {
         return databaseEvents;
     }

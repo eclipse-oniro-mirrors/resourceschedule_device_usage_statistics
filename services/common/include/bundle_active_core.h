@@ -158,7 +158,8 @@ public:
 
     // query the event stat for calling user.
     ErrCode QueryBundleEvents(std::vector<BundleActiveEvent>& bundleActiveEvent, const int32_t userId,
-        const int64_t beginTime, const int64_t endTime, std::string bundleName);
+        const int64_t beginTime, const int64_t endTime, std::string bundleName,
+        const std::vector<int32_t>& eventIds = {});
 
     // check the app idle state for calling user.
     int32_t IsBundleIdle(const std::string& bundleName, const int32_t userId);
