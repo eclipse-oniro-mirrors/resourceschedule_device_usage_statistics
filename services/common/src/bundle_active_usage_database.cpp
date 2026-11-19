@@ -44,6 +44,7 @@ namespace {
     const int32_t MAX_FILES_EVERY_INTERVAL_TYPE[SORTED_TABLE_ARRAY_NUMBER] = {30, 30, 12, 10};
     const int32_t MAIN_APP_INDEX = 0;
     const int64_t MIN_BEGIN_TIME = 0;
+    const ssize_t CHECK_POINT_SIZE = static_cast<ssize_t>(2 * 1024 * 1024);  // 单位：字节
     static constexpr char RSS[] = "RSS";
 }
 BundleActiveUsageDatabase::BundleActiveUsageDatabase()
@@ -578,6 +579,7 @@ shared_ptr<NativeRdb::RdbStore> WEAK_FUNC BundleActiveUsageDatabase::GetBundleAc
         config.SetJournalMode(NativeRdb::JournalMode::MODE_OFF);
 #endif // DEVICE_USAGES_STATISTICS_TEST_ENABLE
         config.SetSecurityLevel(NativeRdb::SecurityLevel::S1);
+        config.SetStartCheckpointSize(CHECK_POINT_SIZE);
         rdbStore = RdbHelper::GetRdbStore(config, BUNDLE_ACTIVE_RDB_VERSION, rdbDataCallBack, errCode);
         if ((rdbStore == nullptr)) {
             config.SetJournalMode(NativeRdb::JournalMode::MODE_WAL);
