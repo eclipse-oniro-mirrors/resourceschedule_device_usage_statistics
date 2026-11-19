@@ -429,6 +429,10 @@ int32_t BundleActiveGroupController::IsBundleIdle(const std::string& bundleName,
         return -1;
     }
     sptr<MiscServices::TimeServiceClient> timer = MiscServices::TimeServiceClient::GetInstance();
+    if (timer == nullptr) {
+        BUNDLE_ACTIVE_LOGW("QueryAppGroup timer is nullptr.");
+        return -1;
+    }
     if (IsBundleInstalled(bundleName, userId) == false) {
         return -1;
     }
@@ -464,6 +468,10 @@ ErrCode BundleActiveGroupController::QueryAppGroup(int32_t& appGroup,
         return ERR_NO_APP_GROUP_INFO_IN_DATABASE;
     }
     sptr<MiscServices::TimeServiceClient> timer = MiscServices::TimeServiceClient::GetInstance();
+    if (timer == nullptr) {
+        BUNDLE_ACTIVE_LOGW("QueryAppGroup timer is nullptr.");
+        return ERR_NO_APP_GROUP_INFO_IN_DATABASE;
+    }
     if (!IsBundleInstalled(bundleName, userId)) {
         BUNDLE_ACTIVE_LOGI("QueryAppGroup is not bundleInstalled");
         return ERR_APPLICATION_IS_NOT_INSTALLED;
