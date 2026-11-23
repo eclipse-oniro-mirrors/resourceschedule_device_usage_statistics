@@ -44,7 +44,7 @@ namespace {
     const int32_t MAX_FILES_EVERY_INTERVAL_TYPE[SORTED_TABLE_ARRAY_NUMBER] = {30, 30, 12, 10};
     const int32_t MAIN_APP_INDEX = 0;
     const int64_t MIN_BEGIN_TIME = 0;
-    const ssize_t CHECK_POINT_SIZE = static_cast<ssize_t>(2 * 1024 * 1024);  // 单位：字节
+    const ssize_t CHECK_POINT_SIZE = static_cast<ssize_t>(512 * 1024);  // unit: Byte
     static constexpr char RSS[] = "RSS";
 }
 BundleActiveUsageDatabase::BundleActiveUsageDatabase()
