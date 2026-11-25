@@ -30,11 +30,6 @@
 auto bundleActiveService = std::make_shared<OHOS::DeviceUsageStats::BundleActiveService>();
 namespace OHOS {
 namespace DeviceUsageStats {
-    static std::string g_defaultBundleName = "com.ohos.camera";
-    static std::string g_defaultMoudleName = "defaultmoudlename";
-    static std::string g_defaultFormName = "defaultformname";
-    static int32_t DEFAULT_DIMENSION = 4;
-    static int64_t DEFAULT_FORMID = 1;
     constexpr int32_t FUZZ_CODE_0 = 0;
     constexpr int32_t FUZZ_CODE_1 = 1;
     constexpr int32_t FUZZ_CODE_2 = 2;
@@ -52,12 +47,19 @@ namespace DeviceUsageStats {
     constexpr int32_t FUZZ_CODE_14 = 14;
     constexpr int32_t FUZZ_CODE_15 = 15;
     constexpr int32_t FUZZ_CODE_16 = 16;
+    constexpr int32_t FUZZ_CODE_17 = 17;
 
     bool ReportEventFuzzTest(FuzzedDataProvider *provider)
     {
         int32_t userId = provider->ConsumeIntegral<int32_t>();
-        BundleActiveEvent event(g_defaultBundleName, g_defaultMoudleName, g_defaultFormName,
-            DEFAULT_DIMENSION, DEFAULT_FORMID, BundleActiveEvent::FORM_IS_CLICKED);
+        std::string bundleName = provider->ConsumeRandomLengthString();
+        std::string moduleName = provider->ConsumeRandomLengthString();
+        std::string formName = provider->ConsumeRandomLengthString();
+        int32_t formDimension = provider->ConsumeIntegral<int32_t>();
+        int64_t formId = provider->ConsumeIntegral<int64_t>();
+        int32_t eventId = provider->ConsumeIntegral<int32_t>();
+        BundleActiveEvent event(bundleName, moduleName, formName,
+            formDimension, formId, eventId);
         bundleActiveService->ReportEvent(event, userId);
         return true;
     }
@@ -100,6 +102,20 @@ namespace DeviceUsageStats {
         int32_t userId = provider->ConsumeIntegral<int32_t>();
         bundleActiveService->QueryBundleEvents(bundleActiveEvent,
             beginTime, endTime, userId);
+        return true;
+    }
+
+    bool QueryBundleEventsByFilterFuzzTest(FuzzedDataProvider *provider)
+    {
+        std::vector<BundleActiveEvent> bundleActiveEvent;
+        BundleActiveEventFilter filter;
+        filter.beginTime_ = provider->ConsumeIntegral<int64_t>();
+        filter.endTime_ = provider->ConsumeIntegral<int64_t>();
+        filter.userId_ = provider->ConsumeIntegral<int32_t>();
+        filter.maxNum_ = provider->ConsumeIntegral<int32_t>();
+        int32_t eventId = provider->ConsumeIntegral<int32_t>();
+        filter.eventIds_.push_back(eventId);
+        bundleActiveService->QueryBundleEventsByFilter(bundleActiveEvent, filter);
         return true;
     }
 
@@ -209,7 +225,7 @@ namespace DeviceUsageStats {
 
     bool QueryBundleTodayLatestUsedTimeFuzzTest(FuzzedDataProvider *provider)
     {
-        int64_t latestUsedTime;
+        int64_t latestUsedTime = 0;
         std::string bundleName = provider->ConsumeRandomLengthString();
         int32_t userId = provider->ConsumeIntegral<int32_t>();
         bundleActiveService->QueryBundleTodayLatestUsedTime(latestUsedTime,
@@ -222,7 +238,7 @@ namespace DeviceUsageStats {
 extern "C" int FuzzIBundleActiveService(FuzzedDataProvider &provider)
 {
     int code = provider.ConsumeIntegralInRange(
-        OHOS::DeviceUsageStats::FUZZ_CODE_0, OHOS::DeviceUsageStats::FUZZ_CODE_16);
+        OHOS::DeviceUsageStats::FUZZ_CODE_0, OHOS::DeviceUsageStats::FUZZ_CODE_17);
     switch (code) {
         case OHOS::DeviceUsageStats::FUZZ_CODE_0: {
             OHOS::DeviceUsageStats::ReportEventFuzzTest(&provider);
@@ -242,6 +258,10 @@ extern "C" int FuzzIBundleActiveService(FuzzedDataProvider &provider)
         }
         case OHOS::DeviceUsageStats::FUZZ_CODE_4: {
             OHOS::DeviceUsageStats::QueryBundleEventsFuzzTest(&provider);
+            break;
+        }
+        case OHOS::DeviceUsageStats::FUZZ_CODE_17: {
+            OHOS::DeviceUsageStats::QueryBundleEventsByFilterFuzzTest(&provider);
             break;
         }
         case OHOS::DeviceUsageStats::FUZZ_CODE_5: {

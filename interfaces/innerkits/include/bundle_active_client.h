@@ -21,6 +21,7 @@
 #include "ibundle_active_service.h"
 #include "bundle_active_package_stats.h"
 #include "bundle_active_event.h"
+#include "bundle_active_event_filter.h"
 #include "bundle_active_event_stats.h"
 #include "bundle_active_package_stats.h"
 #include "bundle_active_module_record.h"
@@ -91,6 +92,17 @@ public:
      */
     ErrCode QueryBundleEvents(std::vector<BundleActiveEvent>& bundleActiveEvents, const int64_t beginTime,
         const int64_t endTime, int32_t userId = -1, const int32_t maxNum = 1000);
+
+    /**
+     * @brief QueryBundleEvents, query events in specific time span for calling user with filter.
+     *
+     * @param filter query conditions, including userId, maxNum, beginTime, endTime and eventIds,
+     * if eventIds_ is empty, all events will be queried.
+     * @param bundleActiveEvents The result of QueryBundleEvents.
+     * @return errCode.
+     */
+    ErrCode QueryBundleEventsByFilter(std::vector<BundleActiveEvent>& bundleActiveEvents,
+        const BundleActiveEventFilter& filter);
 
     /**
      * @brief SetAppGroup, set specific bundle of specific user to a priority group.
@@ -268,4 +280,3 @@ private:
 }  // namespace DeviceUsageStats
 }  // namespace OHOS
 #endif  // BUNDLE_ACTIVE_CLIENT_H
-

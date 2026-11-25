@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -204,6 +204,8 @@ bool BundleActiveEvent::IsBundleEvent(const int32_t eventId)
     if (eventId == ABILITY_BACKGROUND ||
         eventId == ABILITY_FOREGROUND ||
         eventId == ABILITY_STOP ||
+        eventId == APP_FOREGROUND ||
+        eventId == APP_BACKGROUND ||
         eventId == LONG_TIME_TASK_STARTTED ||
         eventId == LONG_TIME_TASK_ENDED ||
         eventId == END_OF_THE_DAY) {
@@ -214,7 +216,11 @@ bool BundleActiveEvent::IsBundleEvent(const int32_t eventId)
 
 bool BundleActiveEvent::IsAppStateEvent(const int32_t eventId)
 {
-    if (eventId == ABILITY_BACKGROUND || eventId == ABILITY_FOREGROUND || eventId == ABILITY_STOP) {
+    if (eventId == ABILITY_BACKGROUND ||
+        eventId == ABILITY_FOREGROUND ||
+        eventId == ABILITY_STOP ||
+        eventId == APP_FOREGROUND ||
+        eventId == APP_BACKGROUND) {
         return true;
     }
     return false;

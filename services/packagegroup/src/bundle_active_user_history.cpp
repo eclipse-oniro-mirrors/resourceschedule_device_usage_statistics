@@ -225,7 +225,10 @@ void BundleActiveUserHistory::ReportUsage(shared_ptr<BundleActivePackageHistory>
         BUNDLE_ACTIVE_LOGI("RegisterAppGroupCallBack AppGroupCallbackInfo build success");
         if (!bundleActiveCore_.expired()) {
             BUNDLE_ACTIVE_LOGD("RegisterAppGroupCallBack will callback!");
-            bundleActiveCore_.lock()->OnAppGroupChanged(callbackInfo);
+            auto corePtr = bundleActiveCore_.lock();
+            if (corePtr) {
+                corePtr->OnAppGroupChanged(callbackInfo);
+            }
         }
     }
 }
@@ -261,8 +264,9 @@ int32_t BundleActiveUserHistory::SetAppGroup(const string& bundleName, const int
     if (!isGroupChanged) {
         AppGroupCallbackInfo callbackInfo(
             userId, oldGroup, newGroup, oneBundleHistory->reasonInGroup_, bundleName);
-        if (!bundleActiveCore_.expired()) {
-            bundleActiveCore_.lock()->OnAppGroupChanged(callbackInfo);
+        std::shared_ptr<BundleActiveCore> bundleActiveCore = bundleActiveCore_.lock();
+        if (bundleActiveCore != nullptr) {
+            bundleActiveCore->OnAppGroupChanged(callbackInfo);
         }
     }
     return ERR_OK;
@@ -293,6 +297,9 @@ void BundleActiveUserHistory::PrintData(int32_t userId)
         return;
     }
     for (auto oneBundleUsage : (*oneUserHistory)) {
+        if (oneBundleUsage.second == nullptr) {
+            continue;
+        }
         BUNDLE_ACTIVE_LOGI("bundle name is %{public}s, lastBootFromUsedTimeStamp_ is %{public}lld, "
             "lastScreenUsedTimeStamp_ is %{public}lld, currentGroup_ is %{public}d, reasonInGroup_ is %{public}d, "
             "daily time out %{public}lld, alive time out %{public}lld", oneBundleUsage.first.c_str(),

@@ -164,7 +164,7 @@ HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_UpgradeDat
     int32_t oldVersion = 1;
     int32_t curVersion = 2;
     database->UpgradeDatabase(oldVersion, curVersion);
-    
+
     oldVersion = 2;
     curVersion = 3;
     database->UpgradeDatabase(oldVersion, curVersion);
@@ -288,7 +288,7 @@ HWTEST_F(BundleActiveUsageDatabaseTest, SupportFirstUseTime_001,
     Function | MediumTest | TestSize.Level0)
 {
     auto database = std::make_shared<BundleActiveUsageDatabase>();
-    
+
     database->SupportFirstUseTime();
     EXPECT_NE(database, nullptr);
 }
@@ -381,6 +381,381 @@ HWTEST_F(BundleActiveUsageDatabaseTest, GetPercentOfAvailableUserSpace_001,
 {
     EXPECT_TRUE(BundleActiveUtil::GetPercentOfAvailableUserSpace("") >= 0);
     EXPECT_TRUE(BundleActiveUtil::GetPercentOfAvailableUserSpace(BUNDLE_ACTIVE_DATABASE_DIR) >= 0);
+}
+
+namespace {
+const int64_t ONE_HOUR_MILLIS = 3600 * 1000LL;
+const int32_t TEST_EVENT_ROWS_PER_DAY = 2;
+
+std::string MakeEventTableName(const int64_t tableTime)
+{
+    return EVENT_LOG_TABLE + std::to_string(tableTime);
+}
+
+void DropEventTable(const std::shared_ptr<NativeRdb::RdbStore>& rdbStore, const int64_t tableTime)
+{
+    if (rdbStore == nullptr) {
+        return;
+    }
+    rdbStore->ExecuteSql("DROP TABLE IF EXISTS " + MakeEventTableName(tableTime));
+    rdbStore->ExecuteSql("DROP INDEX IF EXISTS " + EVENT_LOG_TABLE_INDEX_PREFIX + std::to_string(tableTime));
+}
+
+void InsertEventRows(const std::shared_ptr<NativeRdb::RdbStore>& rdbStore, const std::string& tableName,
+    const int64_t dayOffset, const int32_t rowCount)
+{
+    for (int32_t i = 0; i < rowCount; ++i) {
+        const int64_t timeStamp = dayOffset * ONE_DAY_TIME + ONE_HOUR_MILLIS + i;
+        const std::string insertSql = "insert into " + tableName + " (userId, bundleName, eventId, timeStamp, "
+            "abilityId, uid) values (100, 'com.ohos.tdd', 1, " + std::to_string(timeStamp) +
+            ", 'TddAbility', 200)";
+        EXPECT_EQ(rdbStore->ExecuteSql(insertSql), NativeRdb::E_OK);
+    }
+}
+
+int64_t CountEventRows(const std::shared_ptr<NativeRdb::RdbStore>& rdbStore, const std::string& tableName,
+    const std::string& condition = "")
+{
+    std::string querySql = "select count(*) as cnt from " + tableName;
+    if (!condition.empty()) {
+        querySql += " where " + condition;
+    }
+    std::shared_ptr<NativeRdb::ResultSet> resultSet = rdbStore->QueryByStep(querySql);
+    if (resultSet == nullptr) {
+        return -1;
+    }
+    int32_t columnIndex = -1;
+    if (resultSet->GetColumnIndex("cnt", columnIndex) != NativeRdb::E_OK) {
+        resultSet->Close();
+        return -1;
+    }
+    int64_t rowCount = 0;
+    if (resultSet->GoToNextRow() == NativeRdb::E_OK) {
+        resultSet->GetLong(columnIndex, rowCount);
+    }
+    resultSet->Close();
+    return rowCount;
+}
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_GetDistinctEventDays_001
+ * @tc.desc: GetDistinctEventDays returns empty when event table name is unknown
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_GetDistinctEventDays_001,
+    Function | MediumTest | TestSize.Level0)
+{
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::vector<int64_t> distinctDays = database->GetDistinctEventDays();
+    EXPECT_TRUE(distinctDays.empty());
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_GetDistinctEventDays_002
+ * @tc.desc: GetDistinctEventDays returns empty when event table name cannot be parsed
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_GetDistinctEventDays_002,
+    Function | MediumTest | TestSize.Level0)
+{
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    database->eventTableName_ = "";
+    EXPECT_TRUE(database->GetDistinctEventDays().empty());
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_GetDistinctEventDays_003
+ * @tc.desc: GetDistinctEventDays returns empty for a missing table or a table without data
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_GetDistinctEventDays_003,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910001;
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    database->eventTableName_ = MakeEventTableName(tableTime + 100);
+    EXPECT_TRUE(database->GetDistinctEventDays().empty());
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""), 0);
+    EXPECT_TRUE(database->GetDistinctEventDays().empty());
+    DropEventTable(rdbStore, tableTime);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_GetDistinctEventDays_004
+ * @tc.desc: GetDistinctEventDays returns distinct day buckets in descending order
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_GetDistinctEventDays_004,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910002;
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    EXPECT_EQ(database->eventTableName_, MakeEventTableName(tableTime));
+    for (int64_t day = 0; day <= NUM_DAY_ONE_WEEK; ++day) {
+        InsertEventRows(rdbStore, database->eventTableName_, day, TEST_EVENT_ROWS_PER_DAY);
+    }
+    InsertEventRows(rdbStore, database->eventTableName_, 5, TEST_EVENT_ROWS_PER_DAY);
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""),
+        (NUM_DAY_ONE_WEEK + 1) * TEST_EVENT_ROWS_PER_DAY + TEST_EVENT_ROWS_PER_DAY);
+    std::vector<int64_t> distinctDays = database->GetDistinctEventDays();
+    ASSERT_EQ(static_cast<int32_t>(distinctDays.size()), NUM_DAY_ONE_WEEK + 1);
+    EXPECT_EQ(distinctDays.at(0), NUM_DAY_ONE_WEEK);
+    EXPECT_EQ(distinctDays.at(NUM_DAY_ONE_WEEK), 0);
+    for (size_t i = 1; i < distinctDays.size(); ++i) {
+        EXPECT_GT(distinctDays.at(i - 1), distinctDays.at(i));
+    }
+    DropEventTable(rdbStore, tableTime);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_001
+ * @tc.desc: CalcEventDeleteTimePoint returns 0 when keepDays is not positive
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_001,
+    Function | MediumTest | TestSize.Level0)
+{
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    EXPECT_EQ(database->CalcEventDeleteTimePoint(0, 1000), 0);
+    EXPECT_EQ(database->CalcEventDeleteTimePoint(-1, 1000), 0);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_002
+ * @tc.desc: CalcEventDeleteTimePoint returns 0 when eventTableTime is not positive
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_002,
+    Function | MediumTest | TestSize.Level0)
+{
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    EXPECT_EQ(database->CalcEventDeleteTimePoint(NUM_DAY_ONE_WEEK, 0), 0);
+    EXPECT_EQ(database->CalcEventDeleteTimePoint(NUM_DAY_ONE_WEEK, -1), 0);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_003
+ * @tc.desc: CalcEventDeleteTimePoint returns 0 when distinct days are fewer than keepDays
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_003,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910003;
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    for (int64_t day = 0; day < 3; ++day) {
+        InsertEventRows(rdbStore, database->eventTableName_, day, TEST_EVENT_ROWS_PER_DAY);
+    }
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""), 3 * TEST_EVENT_ROWS_PER_DAY);
+    EXPECT_EQ(database->CalcEventDeleteTimePoint(NUM_DAY_ONE_WEEK, tableTime), 0);
+    DropEventTable(rdbStore, tableTime);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_004
+ * @tc.desc: CalcEventDeleteTimePoint returns 0 when distinct days equal keepDays
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_004,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910004;
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    for (int64_t day = 0; day < NUM_DAY_ONE_WEEK; ++day) {
+        InsertEventRows(rdbStore, database->eventTableName_, day, TEST_EVENT_ROWS_PER_DAY);
+    }
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""),
+        NUM_DAY_ONE_WEEK * TEST_EVENT_ROWS_PER_DAY);
+    EXPECT_EQ(database->CalcEventDeleteTimePoint(NUM_DAY_ONE_WEEK, tableTime), 0);
+    DropEventTable(rdbStore, tableTime);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_005
+ * @tc.desc: CalcEventDeleteTimePoint keeps the newest 7 days when 8 distinct days exist
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_005,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910005;
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    for (int64_t day = 0; day <= NUM_DAY_ONE_WEEK; ++day) {
+        InsertEventRows(rdbStore, database->eventTableName_, day, TEST_EVENT_ROWS_PER_DAY);
+    }
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""),
+        (NUM_DAY_ONE_WEEK + 1) * TEST_EVENT_ROWS_PER_DAY);
+    EXPECT_EQ(database->CalcEventDeleteTimePoint(NUM_DAY_ONE_WEEK, tableTime), ONE_DAY_TIME);
+    DropEventTable(rdbStore, tableTime);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_006
+ * @tc.desc: CalcEventDeleteTimePoint skips days without data when counting retention days
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_006,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910006;
+    const std::vector<int64_t> daysWithData = {0, 2, 3, 4, 5, 6, 7, 8};
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    for (int64_t day : daysWithData) {
+        InsertEventRows(rdbStore, database->eventTableName_, day, TEST_EVENT_ROWS_PER_DAY);
+    }
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""),
+        static_cast<int64_t>(daysWithData.size()) * TEST_EVENT_ROWS_PER_DAY);
+    EXPECT_EQ(database->CalcEventDeleteTimePoint(NUM_DAY_ONE_WEEK, tableTime), 2 * ONE_DAY_TIME);
+    DropEventTable(rdbStore, tableTime);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_007
+ * @tc.desc: CalcEventDeleteTimePoint keeps only the newest day when keepDays is 1
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_CalcEventDeleteTimePoint_007,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910007;
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    for (int64_t day = 0; day <= NUM_DAY_ONE_WEEK; ++day) {
+        InsertEventRows(rdbStore, database->eventTableName_, day, TEST_EVENT_ROWS_PER_DAY);
+    }
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""),
+        (NUM_DAY_ONE_WEEK + 1) * TEST_EVENT_ROWS_PER_DAY);
+    EXPECT_EQ(database->CalcEventDeleteTimePoint(1, tableTime), NUM_DAY_ONE_WEEK * ONE_DAY_TIME);
+    DropEventTable(rdbStore, tableTime);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_DeleteExcessiveTableData_001
+ * @tc.desc: DeleteExcessiveTableData keeps data when eventBeginTime_ is not initialized
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_DeleteExcessiveTableData_001,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910008;
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    database->DeleteExcessiveTableData(EVENT_DATABASE_INDEX);
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    for (int64_t day = 0; day <= NUM_DAY_ONE_WEEK; ++day) {
+        InsertEventRows(rdbStore, database->eventTableName_, day, TEST_EVENT_ROWS_PER_DAY);
+    }
+    const int64_t rowsBefore = CountEventRows(rdbStore, database->eventTableName_, "");
+    EXPECT_EQ(rowsBefore, (NUM_DAY_ONE_WEEK + 1) * TEST_EVENT_ROWS_PER_DAY);
+    EXPECT_EQ(database->eventBeginTime_, EVENT_BEGIN_TIME_INITIAL_VALUE);
+    database->DeleteExcessiveTableData(EVENT_DATABASE_INDEX);
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""), rowsBefore);
+    DropEventTable(rdbStore, tableTime);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_DeleteExcessiveTableData_002
+ * @tc.desc: DeleteExcessiveTableData removes events older than the newest 7 days
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_DeleteExcessiveTableData_002,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910009;
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    for (int64_t day = 0; day <= NUM_DAY_ONE_WEEK; ++day) {
+        InsertEventRows(rdbStore, database->eventTableName_, day, TEST_EVENT_ROWS_PER_DAY);
+    }
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""),
+        (NUM_DAY_ONE_WEEK + 1) * TEST_EVENT_ROWS_PER_DAY);
+    database->eventBeginTime_ = tableTime + (NUM_DAY_ONE_WEEK + 1) * ONE_DAY_TIME;
+    database->DeleteExcessiveTableData(EVENT_DATABASE_INDEX);
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_,
+        "timeStamp < " + std::to_string(ONE_DAY_TIME)), 0);
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_,
+        "timeStamp >= " + std::to_string(ONE_DAY_TIME)), NUM_DAY_ONE_WEEK * TEST_EVENT_ROWS_PER_DAY);
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""),
+        NUM_DAY_ONE_WEEK * TEST_EVENT_ROWS_PER_DAY);
+    DropEventTable(rdbStore, tableTime);
+}
+
+/*
+ * @tc.name: BundleActiveUsageDatabaseTest_DeleteExcessiveTableData_003
+ * @tc.desc: DeleteExcessiveTableData skips days without data and keeps 7 days with data
+ * @tc.type: FUNC
+ * @tc.require: issuesIC2FBU
+ */
+HWTEST_F(BundleActiveUsageDatabaseTest, BundleActiveUsageDatabaseTest_DeleteExcessiveTableData_003,
+    Function | MediumTest | TestSize.Level0)
+{
+    const int64_t tableTime = 910011;
+    const std::vector<int64_t> daysWithData = {0, 2, 3, 4, 5, 6, 7, 8};
+    auto database = std::make_shared<BundleActiveUsageDatabase>();
+    std::shared_ptr<NativeRdb::RdbStore> rdbStore = database->GetBundleActiveRdbStore(EVENT_DATABASE_INDEX);
+    ASSERT_NE(rdbStore, nullptr);
+    DropEventTable(rdbStore, tableTime);
+    EXPECT_EQ(database->CreateEventLogTable(EVENT_DATABASE_INDEX, tableTime), BUNDLE_ACTIVE_SUCCESS);
+    for (int64_t day : daysWithData) {
+        InsertEventRows(rdbStore, database->eventTableName_, day, TEST_EVENT_ROWS_PER_DAY);
+    }
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""),
+        static_cast<int64_t>(daysWithData.size()) * TEST_EVENT_ROWS_PER_DAY);
+    database->eventBeginTime_ = tableTime + (NUM_DAY_ONE_WEEK + 2) * ONE_DAY_TIME;
+    database->DeleteExcessiveTableData(EVENT_DATABASE_INDEX);
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_,
+        "timeStamp < " + std::to_string(ONE_DAY_TIME)), 0);
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_,
+        "timeStamp >= " + std::to_string(2 * ONE_DAY_TIME)), NUM_DAY_ONE_WEEK * TEST_EVENT_ROWS_PER_DAY);
+    EXPECT_EQ(CountEventRows(rdbStore, database->eventTableName_, ""),
+        NUM_DAY_ONE_WEEK * TEST_EVENT_ROWS_PER_DAY);
+    DropEventTable(rdbStore, tableTime);
 }
 }  // namespace DeviceUsageStats
 }  // namespace OHOS

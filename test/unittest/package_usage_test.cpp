@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024  Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -161,6 +161,26 @@ HWTEST_F(PackageUsageTest, PackageUsageTest_UpdateAbility_001, Function | Medium
     eventId = BundleActiveEvent::ABILITY_STOP;
     packageStats->UpdateAbility(timeStamp, eventId, abilityId);
     EXPECT_NE(packageStats, nullptr);
+}
+
+/*
+ * @tc.name: PackageUsageTest_UpdateApp_001
+ * @tc.desc: UpdateApp
+ * @tc.type: FUNC
+ * @tc.require: issues#480
+ */
+HWTEST_F(PackageUsageTest, PackageUsageTest_UpdateApp_001, Function | MediumTest | TestSize.Level0)
+{
+    auto packageStats = std::make_shared<BundleActivePackageStats>();
+    int32_t uid = 30000000;
+    int64_t timeStamp = 20000000000000;
+    int32_t eventId = BundleActiveEvent::APP_FOREGROUND;
+    packageStats->UpdateApp(timeStamp, eventId, uid);
+    EXPECT_TRUE(packageStats->HasFrontApp());
+
+    eventId = BundleActiveEvent::APP_BACKGROUND;
+    packageStats->UpdateApp(timeStamp, eventId, uid);
+    EXPECT_FALSE(packageStats->HasFrontApp());
 }
 
 /*
@@ -443,23 +463,24 @@ HWTEST_F(PackageUsageTest, PackageUsageTest_QueryBundleEvents_001, Function | Me
 }
 
 /*
- * @tc.name: PackageUsageTest_PrintInMemPackageStats_001
- * @tc.desc: PrintInMemPackageStats
+ * @tc.name: PackageUsageTest_Init_001
+ * @tc.desc: Init
  * @tc.type: FUNC
  * @tc.require: issuesI5SOZY
  */
-HWTEST_F(PackageUsageTest, PackageUsageTest_PrintInMemPackageStats_001, Function | MediumTest | TestSize.Level0)
+HWTEST_F(PackageUsageTest, PackageUsageTest_Init_001, Function | MediumTest | TestSize.Level0)
 {
     int32_t userId = 100;
     auto bundleUserService = std::make_shared<BundleActiveUserService>(userId, *(bundleActiveCore_.get()), true);
     int64_t timeStamp = 20000000000000;
     bundleUserService->Init(timeStamp);
-
+ 
     bundleUserService->currentStats_[0] = std::make_shared<BundleActivePeriodStats>();
-    bundleUserService->currentStats_[0]->bundleStats_.emplace(
-        "defaultBundleStat", std::make_shared<BundleActivePackageStats>());
-    bundleUserService->PrintInMemPackageStats(0, true);
-    EXPECT_NE(bundleUserService, nullptr);
+    auto packageStatsObj = std::make_shared<BundleActivePackageStats>();
+    packageStatsObj->totalInFrontTime_ = 100;
+    bundleUserService->currentStats_[0]->bundleStats_.emplace("defaultBundleStat", packageStatsObj);
+    // Verify the bundle stats was properly added to currentStats_
+    EXPECT_EQ(bundleUserService->currentStats_[0]->bundleStats_.size(), 1u);
 }
 
 /*
@@ -980,20 +1001,25 @@ HWTEST_F(PackageUsageTest, BundleActiveGroupHandler_005, Function | MediumTest |
     BundleActiveGroupHandlerObject tmpObject;
     auto handlerObject = std::make_shared<BundleActiveGroupHandlerObject>(tmpObject);
     auto bundleActiveGroupHandler = std::make_shared<BundleActiveGroupHandler>(true);
-        bundleActiveGroupHandler->PostTask([]() {
-        SUCCEED();
+    EXPECT_FALSE(bundleActiveGroupHandler->isInited_);
+    // PostTask and PostSyncTask should be no-ops before Init
+    bundleActiveGroupHandler->PostTask([]() {
+        // Task should not execute before Init
     });
     bundleActiveGroupHandler->PostSyncTask([]() {
-        SUCCEED();
+        // SyncTask should not execute before Init
     });
+    EXPECT_FALSE(bundleActiveGroupHandler->isInited_);
     bundleActiveGroupHandler->Init();
     EXPECT_TRUE(bundleActiveGroupHandler->isInited_);
-    bundleActiveGroupHandler->PostTask([]() {
-        SUCCEED();
+    bool taskExecuted = false;
+    bundleActiveGroupHandler->PostTask([&taskExecuted]() {
+        taskExecuted = true;
     });
-    bundleActiveGroupHandler->PostSyncTask([]() {
-        SUCCEED();
+    bundleActiveGroupHandler->PostSyncTask([&taskExecuted]() {
+        taskExecuted = true;
     });
+    EXPECT_TRUE(taskExecuted);
 }
 
 /*

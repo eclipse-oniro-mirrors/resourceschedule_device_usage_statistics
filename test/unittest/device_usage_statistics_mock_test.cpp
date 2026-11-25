@@ -203,8 +203,10 @@ HWTEST_F(DeviceUsageStatisticsMockTest, DeviceUsageStatisticsMockTest_QueryAppGr
 {
     int32_t appGroup;
     std::string bundleName;
-    EXPECT_NE(DelayedSingleton<BundleActiveService>::GetInstance()->QueryAppGroup(appGroup, bundleName, -1), ERR_OK);
-    EXPECT_NE(DelayedSingleton<BundleActiveService>::GetInstance()->QueryAppGroup(appGroup, bundleName, 100), ERR_OK);
+    ErrCode code = DelayedSingleton<BundleActiveService>::GetInstance()->QueryAppGroup(appGroup, bundleName, -1);
+    EXPECT_EQ(code, ERR_SYSTEM_ABILITY_SUPPORT_FAILED);
+    code = DelayedSingleton<BundleActiveService>::GetInstance()->QueryAppGroup(appGroup, bundleName, 100);
+    EXPECT_EQ(code, ERR_NOT_SYSTEM_APP);
 }
 
 /*
@@ -218,8 +220,10 @@ HWTEST_F(DeviceUsageStatisticsMockTest, DeviceUsageStatisticsMockTest_SetAppGrou
 {
     int32_t appGroup = 100;
     std::string bundleName;
-    EXPECT_NE(DelayedSingleton<BundleActiveService>::GetInstance()->SetAppGroup(bundleName, appGroup, -1), ERR_OK);
-    EXPECT_NE(DelayedSingleton<BundleActiveService>::GetInstance()->SetAppGroup(bundleName, appGroup, 100), ERR_OK);
+    ErrCode code = DelayedSingleton<BundleActiveService>::GetInstance()->SetAppGroup(bundleName, appGroup, -1);
+    EXPECT_EQ(code, ERR_SYSTEM_ABILITY_SUPPORT_FAILED);
+    code = DelayedSingleton<BundleActiveService>::GetInstance()->SetAppGroup(bundleName, appGroup, 100);
+    EXPECT_EQ(code, ERR_PERMISSION_DENIED);
 }
 
 /*

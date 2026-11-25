@@ -484,9 +484,9 @@ ErrCode BundleActiveUserService::QueryBundleStatsInfos(std::vector<BundleActiveP
 }
 
 ErrCode BundleActiveUserService::QueryBundleEvents(std::vector<BundleActiveEvent>& bundleActiveEvent,
-    const int64_t beginTime, const int64_t endTime, const int32_t userId, const std::string& bundleName)
+    const int64_t beginTime, const int64_t endTime, const int32_t userId, const std::string& bundleName,
+    const std::vector<int32_t>& eventIds)
 {
-    BUNDLE_ACTIVE_LOGI("QueryBundleEvents called");
     std::lock_guard<ffrt::recursive_mutex> lock(statsMutex_);
     auto currentStats = currentStats_[BundleActivePeriodStats::PERIOD_DAILY];
     if (currentStats == nullptr) {
@@ -496,8 +496,10 @@ ErrCode BundleActiveUserService::QueryBundleEvents(std::vector<BundleActiveEvent
     if (beginTime >= currentStats->endTime_) {
         return ERR_QUERY_TIME_OUT_OF_RANGE;
     }
-    BUNDLE_ACTIVE_LOGI("Query event bundle name is %{public}s", bundleName.c_str());
-    bundleActiveEvent = database_.QueryDatabaseEvents(beginTime, endTime, userId, bundleName);
+    std::set<int32_t> eventIdSet(eventIds.begin(), eventIds.end());
+    bool filterByEventId = !eventIdSet.empty();
+    BUNDLE_ACTIVE_LOGD("Query event bundle name is %{public}s", bundleName.c_str());
+    bundleActiveEvent = database_.QueryDatabaseEvents(beginTime, endTime, userId, bundleName, eventIds);
     PrintInMemEventStats(debugUserService_);
     if (currentStats->endTime_ == 0) {
         BUNDLE_ACTIVE_LOGI("QueryBundleEvents result in db is %{public}zu", bundleActiveEvent.size());
@@ -512,12 +514,16 @@ ErrCode BundleActiveUserService::QueryBundleEvents(std::vector<BundleActiveEvent
             if (currentStats->events_.events_[i].timeStamp_ > endTime) {
                 continue;
             }
-            if (bundleName.empty() || currentStats->events_.events_[i].bundleName_ == bundleName) {
-                bundleActiveEvent.push_back(currentStats->events_.events_[i]);
+            if (!bundleName.empty() && currentStats->events_.events_[i].bundleName_ != bundleName) {
+                continue;
             }
+            if (filterByEventId && eventIdSet.find(currentStats->events_.events_[i].eventId_) == eventIdSet.end()) {
+                continue;
+            }
+            bundleActiveEvent.push_back(currentStats->events_.events_[i]);
         }
     }
-    BUNDLE_ACTIVE_LOGI("QueryBundleEvents result in db and memory is %{public}zu", bundleActiveEvent.size());
+    BUNDLE_ACTIVE_LOGD("QueryBundleEvents result in db and memory is %{public}zu", bundleActiveEvent.size());
     return ERR_OK;
 }
 

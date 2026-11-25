@@ -77,7 +77,8 @@
               "bundle_active_group_map.h",
               "bundle_active_module_record.h",
               "bundle_active_package_stats.h",
-              "bundle_active_high_frequency_period.h"
+              "bundle_active_high_frequency_period.h",
+              "bundle_active_event_filter.h"
             ]
           },
           "name": "//foundation/resourceschedule/device_usage_statistics:usagestatsinner"
@@ -90,7 +91,7 @@
         "//foundation/resourceschedule/device_usage_statistics:test_all",
         "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundle_fuzzer:BundleActiveEventFuzzTest",
         "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivemarshalling_fuzzer:fuzztest",
-        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivecalendar_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivecalendarstats_fuzzer:fuzztest",
         "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivepackagestats_fuzzer:fuzztest",
         "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivebinarysearch_fuzzer:fuzztest",
         "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivegroupmap_fuzzer:fuzztest",

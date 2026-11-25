@@ -57,6 +57,7 @@ ohos_shared_library("usagestatsinner") {
     "interfaces/innerkits/src/bundle_active_module_record.cpp",
     "interfaces/innerkits/src/bundle_active_package_stats.cpp",
     "interfaces/innerkits/src/bundle_active_high_frequency_period.cpp",
+    "interfaces/innerkits/src/bundle_active_event_filter.cpp",
   ]
   public_configs = [ ":usagestats_public_config" ]
   cflags_cc = [ "-fstack-protector-strong" ]
@@ -393,6 +394,7 @@ ohos_static_library("usagestatsinner_static") {
     "interfaces/innerkits/src/bundle_active_form_record.cpp",
     "interfaces/innerkits/src/bundle_active_module_record.cpp",
     "interfaces/innerkits/src/bundle_active_package_stats.cpp",
+    "interfaces/innerkits/src/bundle_active_event_filter.cpp",
   ]
   public_configs = [ ":usagestats_public_config" ]
   deps = [
@@ -447,6 +449,7 @@ ohos_shared_library("usagestatsutils") {
   part_name = "${device_usage_statistics_part_name}"
   subsystem_name = "resourceschedule"
   branch_protector_ret = "pac_ret"
+  version_script = "libusagestatsutils.versionscript"
 
   sanitize = {
     cfi = true
@@ -482,11 +485,13 @@ group("test_all") {
     deps = [
       "${usage_statistics_path}/interfaces/test/unittest/device_usage_statistics_jsunittest:js_unittest",
       "${usage_statistics_path}/test/fuzztest/appgroupcallbackstub_fuzzer:fuzztest",
+      "${usage_statistics_path}/test/fuzztest/bundleactivecalendar_fuzzer:fuzztest",
       "${usage_statistics_path}/test/fuzztest/bundleactivecommon_fuzzer:fuzztest",
+      "${usage_statistics_path}/test/fuzztest/bundleactivegroupcontroller_fuzzer:fuzztest",
       "${usage_statistics_path}/test/fuzztest/bundleactiveobserver_fuzzer:fuzztest",
-      "${usage_statistics_path}/test/fuzztest/bundleactiveonremoterequest_fuzzer:fuzztest",
       "${usage_statistics_path}/test/fuzztest/bundleactiveparallelization_fuzzer:fuzztest",
       "${usage_statistics_path}/test/fuzztest/bundleactivepowerstatecallbackproxy_fuzzer:fuzztest",
+      "${usage_statistics_path}/test/fuzztest/bundleactivevalueobject_fuzzer:fuzztest",
       "${usage_statistics_path}/test/unittest:unittest",
       "${usage_statistics_path}/test/fuzztest:fuzztest",
     ]
