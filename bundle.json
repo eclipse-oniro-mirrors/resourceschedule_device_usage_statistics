@@ -88,8 +88,15 @@
         }
       ],
       "test": [
-       "//foundation/resourceschedule/device_usage_statistics:test_all",
-       "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundle_fuzzer:BundleActiveEventFuzzTest"
+        "//foundation/resourceschedule/device_usage_statistics:test_all",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundle_fuzzer:BundleActiveEventFuzzTest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivemarshalling_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivecalendarstats_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivepackagestats_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivebinarysearch_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivegroupmap_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactivehighfrequencyperiod_fuzzer:fuzztest",
+        "//foundation/resourceschedule/device_usage_statistics/test/fuzztest/bundleactiveutil_fuzzer:fuzztest"
       ]
     }
   }

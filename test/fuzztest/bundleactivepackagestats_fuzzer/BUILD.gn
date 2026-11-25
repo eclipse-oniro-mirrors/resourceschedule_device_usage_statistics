@@ -11,20 +11,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#####################hydra-fuzz###################
 import("//build/config/features.gni")
 import("//build/test.gni")
 import("../../../device_usage_statistics.gni")
 
-##############################fuzztest##########################################
 module_output_path = "device_usage_statistics/device_usage_statistics"
+
+config("module_private_config") {
+  include_dirs = [
+    "${usage_statistics_path}/interfaces/innerkits/include",
+    "${usage_statistics_path}/services/common/include",
+    "${usage_statistics_path}/services/packageusage/include",
+    "${usage_statistics_path}/utils/include",
+  ]
+}
 
 ohos_fuzztest("BundleActivePackageStatsFuzzTest") {
   module_out_path = module_output_path
-  fuzz_config_file = "${usage_statistics_path}/test/fuzztest/bundleactivepackagestats_fuzzer"
-
+  fuzz_config_file =
+      "${usage_statistics_path}/test/fuzztest/bundleactivepackagestats_fuzzer"
+  configs = [ ":module_private_config" ]
   cflags = [
-    "--coverage",
     "-g",
     "-O0",
     "-Wno-unused-variable",
@@ -32,34 +39,16 @@ ohos_fuzztest("BundleActivePackageStatsFuzzTest") {
     "-Dprivate=public",
     "-Dprotected=public",
   ]
-  cflags_cc = [ 
-     "--coverage",
-     "-O0",
-  ]
-  ldflags = [ "--coverage" ]
+  sources = [ "bundleactivepackagestats_fuzzer.cpp" ]
 
-  sources = [
-    "bundleactivepackagestats_fuzzer.cpp",
-  ]
-
-  # 依赖当前模块的内部静态库，GN 会自动传递所需的大部分外部依赖
-  deps = [
-    "${usage_statistics_path}:usagestatservice_static",
-  ]
-
-  # 如果有需要单独补充的外部依赖（比如跨进程传递的 Parcel 或安全校验的 Token），可以在这里加
+  public_deps = [ "${usage_statistics_path}:usagestatsinner" ]
   external_deps = [
-    "c_utils:utils",
     "hilog:libhilog",
     "ipc:ipc_single",
   ]
 }
 
-###############################################################################
 group("fuzztest") {
   testonly = true
-  deps = [
-    ":BundleActivePackageStatsFuzzTest",
-  ]
+  deps = [ ":BundleActivePackageStatsFuzzTest" ]
 }
-###############################################################################

@@ -12,10 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef BUNDLE_ACTIVE_PACKAGE_STATS_FUZZER_H
 #define BUNDLE_ACTIVE_PACKAGE_STATS_FUZZER_H
-
-#define FUZZ_PROJECT_NAME "BundleActivePackageStatsFuzzTest"
-
-#endif // BUNDLE_ACTIVE_PACKAGE_STATS_FUZZER_H
+#define FUZZ_PROJECT_NAME "bundleactivepackagestats_fuzzer"
+#endif

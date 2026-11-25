@@ -14,136 +14,303 @@
  */
 
 #include "bundleactivepackagestats_fuzzer.h"
-#include "bundle_active_package_stats.h"
-#include <fuzzer/FuzzedDataProvider.h>
-#include <cstddef>
+
 #include <cstdint>
+#include <fuzzer/FuzzedDataProvider.h>
+#include <memory>
 #include <string>
-#include <array>
 
-using namespace OHOS::DeviceUsageStats;
+#include "bundle_active_event.h"
+#include "bundle_active_package_stats.h"
 
+namespace OHOS {
+namespace DeviceUsageStats {
 namespace {
-// 定义可能的 eventId 值列表，用于覆盖所有可能的状态转换
-constexpr std::array<int32_t, 11> EVENT_IDS = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+constexpr int32_t MAX_STRING_LENGTH = 128;
+constexpr int32_t MAX_OPERATIONS = 30;
+constexpr int32_t MAX_NUM = 100;
+constexpr int32_t MAX_COUNT = 20;
+constexpr int32_t COUNT = 2;
+constexpr int32_t OPERATION_COUNT = 5;
 
-// 生成随机字符串
-std::string ConsumeRandomString(FuzzedDataProvider& fdp, size_t maxLen = 100)
+void FuzzPackageStatsUpdate(FuzzedDataProvider &provider)
 {
-    auto len = fdp.ConsumeIntegralInRange<size_t>(0, maxLen);
-    return fdp.ConsumeRandomLengthString(len);
-}
+    BundleActivePackageStats stats;
+    stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+    stats.userId_ = provider.ConsumeIntegral<int32_t>();
+    stats.uid_ = provider.ConsumeIntegral<int32_t>();
 
-// 生成随机时间戳
-int64_t ConsumeTimestamp(FuzzedDataProvider& fdp)
-{
-    return fdp.ConsumeIntegral<int64_t>();
-}
-
-// 生成随机 UID
-int32_t ConsumeUid(FuzzedDataProvider& fdp)
-{
-    return fdp.ConsumeIntegral<int32_t>();
-}
-
-// 对 BundleActivePackageStats 进行多轮 Update 调用
-void PerformUpdates(BundleActivePackageStats& stats, FuzzedDataProvider& fdp, size_t numUpdates)
-{
-    for (size_t i = 0; i < numUpdates; ++i) {
-        std::string longTimeTaskName = ConsumeRandomString(fdp, 50);
-        int64_t timeStamp = ConsumeTimestamp(fdp);
-        int32_t eventId = fdp.PickValueInArray(EVENT_IDS);
-        std::string abilityId = ConsumeRandomString(fdp, 50);
-        int32_t uid = ConsumeUid(fdp);
+    int32_t operationCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_OPERATIONS);
+    for (int32_t i = 0; i < operationCount; ++i) {
+        std::string longTimeTaskName = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+        int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
+        int32_t eventId = provider.ConsumeIntegralInRange<int32_t>(
+            BundleActiveEvent::ABILITY_FOREGROUND, BundleActiveEvent::SYSTEM_WAKEUP);
+        std::string abilityId = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+        int32_t uid = provider.ConsumeIntegral<int32_t>();
 
         stats.Update(longTimeTaskName, timeStamp, eventId, abilityId, uid);
+    }
 
-        // 随机调用其他方法
-        if (fdp.ConsumeBool()) {
-            stats.IncrementTimeUsed(ConsumeTimestamp(fdp));
-        }
-        if (fdp.ConsumeBool()) {
-            stats.IncrementServiceTimeUsed(ConsumeTimestamp(fdp));
-        }
-        if (fdp.ConsumeBool()) {
-            stats.IncrementBundleLaunchedCount();
+    stats.ToString();
+}
+
+void FuzzPackageStatsTimeOperations(FuzzedDataProvider &provider)
+{
+    BundleActivePackageStats stats;
+    stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+    stats.beginTimeStamp_ = provider.ConsumeIntegral<int64_t>();
+    stats.endTimeStamp_ = provider.ConsumeIntegral<int64_t>();
+    stats.lastTimeUsed_ = provider.ConsumeIntegral<int64_t>();
+
+    int32_t operationCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_OPERATIONS);
+    for (int32_t i = 0; i < operationCount; ++i) {
+        int32_t operation = provider.ConsumeIntegralInRange<int32_t>(0, COUNT);
+        enum class StatsOp : uint8_t {
+        INCREMENT_TIME_USED = 0,     // 增加应用使用时间
+        INCREMENT_SERVICE_TIME_USED, // 增加服务使用时间
+        INCREMENT_LAUNCH_COUNT,      // 增加应用启动次数
+        MAX_OP                       // 用于限制 Fuzzer 的随机范围
+        };
+        switch (static_cast<StatsOp>(operation)) {
+            case StatsOp::INCREMENT_TIME_USED:
+                stats.IncrementTimeUsed(provider.ConsumeIntegral<int64_t>());
+                break;
+            case StatsOp::INCREMENT_SERVICE_TIME_USED:
+                stats.IncrementServiceTimeUsed(provider.ConsumeIntegral<int64_t>());
+                break;
+            case StatsOp::INCREMENT_LAUNCH_COUNT:
+                stats.IncrementBundleLaunchedCount();
+                break;
+            default:
+                break;
         }
     }
 }
 
-// 测试序列化与反序列化，并验证 ToString
-void TestMarshalling(const BundleActivePackageStats& stats)
+void FuzzPackageStatsAbilityTracking(FuzzedDataProvider &provider)
 {
-    OHOS::Parcel parcel;
+    BundleActivePackageStats stats;
+    stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+
+    int32_t abilityCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_COUNT);
+    for (int32_t i = 0; i < abilityCount; ++i) {
+        std::string abilityId = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+        int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
+        int32_t eventId = provider.ConsumeIntegralInRange<int32_t>(
+            BundleActiveEvent::ABILITY_FOREGROUND, BundleActiveEvent::ABILITY_STOP);
+
+        stats.Update("", timeStamp, eventId, abilityId, provider.ConsumeIntegral<int32_t>());
+    }
+}
+
+void FuzzPackageStatsLongTimeTaskTracking(FuzzedDataProvider &provider)
+{
+    BundleActivePackageStats stats;
+    stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+
+    int32_t taskCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_COUNT);
+    for (int32_t i = 0; i < taskCount; ++i) {
+        std::string taskName = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+        int64_t timeStamp = provider.ConsumeIntegral<int64_t>();
+        int32_t eventId = provider.ConsumeIntegralInRange<int32_t>(
+            BundleActiveEvent::LONG_TIME_TASK_STARTTED, BundleActiveEvent::LONG_TIME_TASK_ENDED);
+
+        stats.Update(taskName, timeStamp, eventId, "", provider.ConsumeIntegral<int32_t>());
+    }
+}
+enum class StatsScenario : uint8_t {
+    UPDATE_ABILITY_FOREGROUND = 0, // 更新 Ability 前台状态
+    UPDATE_ABILITY_BACKGROUND,     // 更新 Ability 后台状态
+    UPDATE_TASK_STARTED,           // 长时间任务开始
+    UPDATE_TASK_ENDED,             // 长时间任务结束
+    INCREMENT_TIME_USED,           // 增加使用时间
+    INCREMENT_LAUNCH_COUNT,        // 增加启动次数
+};
+constexpr int32_t MIN_STATS_SCENARIO = static_cast<int32_t>(StatsScenario::UPDATE_ABILITY_FOREGROUND);
+constexpr int32_t MAX_STATS_SCENARIO = static_cast<int32_t>(StatsScenario::INCREMENT_LAUNCH_COUNT);
+
+void FuzzPackageStatsMixedScenario(FuzzedDataProvider &provider)
+{
+    BundleActivePackageStats stats;
+    stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+    stats.userId_ = provider.ConsumeIntegral<int32_t>();
+    stats.uid_ = provider.ConsumeIntegral<int32_t>();
+    stats.appIndex_ = provider.ConsumeIntegral<int32_t>();
+
+    int32_t operationCount = provider.ConsumeIntegralInRange<int32_t>(1, MAX_OPERATIONS);
+    for (int32_t i = 0; i < operationCount; ++i) {
+        int32_t scenario = provider.ConsumeIntegralInRange<int32_t>(MIN_STATS_SCENARIO, MAX_STATS_SCENARIO);
+        switch (static_cast<StatsScenario>(scenario)) {
+            case StatsScenario::UPDATE_ABILITY_FOREGROUND: {
+                std::string abilityId = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+                stats.Update("", provider.ConsumeIntegral<int64_t>(),
+                    BundleActiveEvent::ABILITY_FOREGROUND, abilityId,
+                    provider.ConsumeIntegral<int32_t>());
+                break;
+            }
+            case StatsScenario::UPDATE_ABILITY_BACKGROUND: {
+                std::string abilityId = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+                stats.Update("", provider.ConsumeIntegral<int64_t>(),
+                    BundleActiveEvent::ABILITY_BACKGROUND, abilityId,
+                    provider.ConsumeIntegral<int32_t>());
+                break;
+            }
+            case StatsScenario::UPDATE_TASK_STARTED: {
+                std::string taskName = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+                stats.Update(taskName, provider.ConsumeIntegral<int64_t>(),
+                    BundleActiveEvent::LONG_TIME_TASK_STARTTED, "",
+                    provider.ConsumeIntegral<int32_t>());
+                break;
+            }
+            case StatsScenario::UPDATE_TASK_ENDED: {
+                std::string taskName = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+                stats.Update(taskName, provider.ConsumeIntegral<int64_t>(),
+                    BundleActiveEvent::LONG_TIME_TASK_ENDED, "",
+                    provider.ConsumeIntegral<int32_t>());
+                break;
+            }
+            case StatsScenario::INCREMENT_TIME_USED:
+                stats.IncrementTimeUsed(provider.ConsumeIntegral<int64_t>());
+                break;
+            case StatsScenario::INCREMENT_LAUNCH_COUNT:
+                stats.IncrementBundleLaunchedCount();
+                break;
+            default:
+                break;
+        }
+    }
+
+    stats.ToString();
+}
+
+void FuzzPackageStatsCopyAndAssignment(FuzzedDataProvider &provider)
+{
+    BundleActivePackageStats stats1;
+    stats1.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+    stats1.beginTimeStamp_ = provider.ConsumeIntegral<int64_t>();
+    stats1.endTimeStamp_ = provider.ConsumeIntegral<int64_t>();
+    stats1.lastTimeUsed_ = provider.ConsumeIntegral<int64_t>();
+    stats1.totalInFrontTime_ = provider.ConsumeIntegral<int64_t>();
+    stats1.userId_ = provider.ConsumeIntegral<int32_t>();
+
+    int32_t abilityCount = provider.ConsumeIntegralInRange<int32_t>(0, OPERATION_COUNT);
+    for (int32_t i = 0; i < abilityCount; ++i) {
+        stats1.abilities_[provider.ConsumeRandomLengthString(MAX_STRING_LENGTH)] =
+            provider.ConsumeIntegral<int32_t>();
+    }
+
+    BundleActivePackageStats stats2(stats1);
+    stats2.IncrementTimeUsed(provider.ConsumeIntegral<int64_t>());
+
+    BundleActivePackageStats stats3;
+    stats3.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+    stats3.Update("", provider.ConsumeIntegral<int64_t>(),
+        BundleActiveEvent::ABILITY_FOREGROUND,
+        provider.ConsumeRandomLengthString(MAX_STRING_LENGTH),
+        provider.ConsumeIntegral<int32_t>());
+}
+
+void FuzzPackageStatsMarshalling(FuzzedDataProvider &provider)
+{
+    BundleActivePackageStats stats;
+    stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+    stats.beginTimeStamp_ = provider.ConsumeIntegral<int64_t>();
+    stats.endTimeStamp_ = provider.ConsumeIntegral<int64_t>();
+    stats.lastTimeUsed_ = provider.ConsumeIntegral<int64_t>();
+    stats.totalInFrontTime_ = provider.ConsumeIntegral<int64_t>();
+    stats.userId_ = provider.ConsumeIntegral<int32_t>();
+    stats.uid_ = provider.ConsumeIntegral<int32_t>();
+    stats.appIndex_ = provider.ConsumeIntegral<int32_t>();
+
+    Parcel parcel;
     if (!stats.Marshalling(parcel)) {
         return;
     }
-
     parcel.RewindRead(0);
-    BundleActivePackageStats* unmarshalled = BundleActivePackageStats::Unmarshalling(parcel);
+    std::unique_ptr<BundleActivePackageStats> unmarshalled(
+        BundleActivePackageStats::Unmarshalling(parcel));
     if (unmarshalled != nullptr) {
-        (void)unmarshalled->ToString(); // 触发 ToString 调用
-        delete unmarshalled;
+        (void)unmarshalled->ToString();
     }
 }
 
-// 对 stats 进行多轮增量操作
-void PerformIncrements(BundleActivePackageStats& stats, FuzzedDataProvider& fdp, size_t numIncrements)
+void FuzzPackageStatsEdgeCases(FuzzedDataProvider &provider)
 {
-    for (size_t i = 0; i < numIncrements; ++i) {
-        if (fdp.ConsumeBool()) {
-            stats.IncrementTimeUsed(ConsumeTimestamp(fdp));
-        }
-        if (fdp.ConsumeBool()) {
-            stats.IncrementServiceTimeUsed(ConsumeTimestamp(fdp));
-        }
-        if (fdp.ConsumeBool()) {
-            stats.IncrementBundleLaunchedCount();
-        }
+    BundleActivePackageStats stats;
+    stats.bundleName_ = "";
+    stats.Update("", 0, BundleActiveEvent::ABILITY_FOREGROUND, "", 0);
+    stats.IncrementTimeUsed(0);
+    stats.IncrementServiceTimeUsed(0);
+    stats.IncrementBundleLaunchedCount();
+
+    stats.bundleName_ = provider.ConsumeRandomLengthString(MAX_STRING_LENGTH);
+    stats.Update("", -1, BundleActiveEvent::ABILITY_FOREGROUND, "", -1);
+    stats.IncrementTimeUsed(-1);
+    stats.IncrementServiceTimeUsed(-1);
+
+    stats.Update("", INT64_MAX, BundleActiveEvent::ABILITY_FOREGROUND, "", INT32_MAX);
+    stats.IncrementTimeUsed(INT64_MAX);
+    stats.IncrementServiceTimeUsed(INT64_MAX);
+
+    for (int32_t i = 0; i < MAX_NUM; ++i) {
+        stats.IncrementBundleLaunchedCount();
     }
 }
 
+enum FuzzCase : uint8_t {
+    PACKAGE_STATS_UPDATE = 0,
+    PACKAGE_STATS_TIME_OPS,
+    PACKAGE_STATS_ABILITY_TRACKING,
+    PACKAGE_STATS_TASK_TRACKING,
+    PACKAGE_STATS_MIXED,
+    PACKAGE_STATS_COPY,
+    PACKAGE_STATS_MARSHALLING,
+    PACKAGE_STATS_EDGE_CASES,
+    FUZZ_CASE_COUNT,
+};
+
+void DispatchFuzzCase(FuzzedDataProvider &provider)
+{
+    switch (provider.ConsumeIntegralInRange<uint8_t>(PACKAGE_STATS_UPDATE, FUZZ_CASE_COUNT - 1)) {
+        case PACKAGE_STATS_UPDATE:
+            FuzzPackageStatsUpdate(provider);
+            break;
+        case PACKAGE_STATS_TIME_OPS:
+            FuzzPackageStatsTimeOperations(provider);
+            break;
+        case PACKAGE_STATS_ABILITY_TRACKING:
+            FuzzPackageStatsAbilityTracking(provider);
+            break;
+        case PACKAGE_STATS_TASK_TRACKING:
+            FuzzPackageStatsLongTimeTaskTracking(provider);
+            break;
+        case PACKAGE_STATS_MIXED:
+            FuzzPackageStatsMixedScenario(provider);
+            break;
+        case PACKAGE_STATS_COPY:
+            FuzzPackageStatsCopyAndAssignment(provider);
+            break;
+        case PACKAGE_STATS_MARSHALLING:
+            FuzzPackageStatsMarshalling(provider);
+            break;
+        case PACKAGE_STATS_EDGE_CASES:
+            FuzzPackageStatsEdgeCases(provider);
+            break;
+        default:
+            break;
+    }
+}
 } // namespace
+} // namespace DeviceUsageStats
+} // namespace OHOS
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    FuzzedDataProvider fdp(data, size);
-
-    // 1. 测试默认构造函数
-    BundleActivePackageStats stats1;
-
-    // 2. 测试拷贝构造函数
-    BundleActivePackageStats stats2(stats1);
-
-    // 3. 对 stats1 进行多轮 Update 调用
-    auto numUpdates1 = fdp.ConsumeIntegralInRange<size_t>(1, 50);
-    PerformUpdates(stats1, fdp, numUpdates1);
-
-    // 4. 测试 Marshalling/Unmarshalling
-    TestMarshalling(stats1);
-
-    // 5. 对 stats2 进行一定数量的操作
-    auto numUpdates2 = fdp.ConsumeIntegralInRange<size_t>(0, 20);
-    PerformUpdates(stats2, fdp, numUpdates2);
-
-    // 6. 测试 ToString 方法
-    (void)stats1.ToString();
-    (void)stats2.ToString();
-
-    // 7. 测试赋值（通过拷贝构造模拟）
-    BundleActivePackageStats stats3(stats1);
-
-    // 8. 边界测试：空字符串参数
-    if (fdp.remaining_bytes() > 0) {
-        stats1.Update("", 0, 0, "", 0);
+    if (data == nullptr || size == 0) {
+        return 0;
     }
-
-    // 9. 多次调用增量方法
-    auto numIncrements = fdp.ConsumeIntegralInRange<size_t>(0, 10);
-    PerformIncrements(stats1, fdp, numIncrements);
-
-    // 10. 最后再测试一次序列化/反序列化
-    TestMarshalling(stats1);
-
+    FuzzedDataProvider provider(data, size);
+    OHOS::DeviceUsageStats::DispatchFuzzCase(provider);
     return 0;
 }
