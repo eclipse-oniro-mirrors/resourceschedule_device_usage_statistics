@@ -13,19 +13,11 @@
  * limitations under the License.
  */
 
-#ifndef BUNDLEACTIVEGROUPCONTROLLER_FUZZER_H
-#define BUNDLEACTIVEGROUPCONTROLLER_FUZZER_H
-
-#include <cstdint>
-#include <unistd.h>
-#include <climits>
-#include <cstdio>
-#include <cstdlib>
-#include <fcntl.h>
-#include <string>
-#include <vector>
-#include <algorithm>
+#ifndef BUNDLE_ACTIVE_GROUP_CONTROLLER_FUZZER_H
+#define BUNDLE_ACTIVE_GROUP_CONTROLLER_FUZZER_H
 
 #define FUZZ_PROJECT_NAME "bundleactivegroupcontroller_fuzzer"
 
-#endif // BUNDLEACTIVEGROUPCONTROLLER_FUZZER_H
+#include "fuzztest_helper.h"
+
+#endif // BUNDLE_ACTIVE_GROUP_CONTROLLER_FUZZER_H

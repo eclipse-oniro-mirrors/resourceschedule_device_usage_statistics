@@ -25,9 +25,8 @@ config("module_private_config") {
     "${usage_statistics_path}/services/common/include",
     "${usage_statistics_path}/services/packageusage/include",
     "${usage_statistics_path}/services/packagegroup/include",
-    "${usage_statistics_path}/interfaces/kits/bundlestats/napi/include",
     "${usage_statistics_path}/utils/include",
-    "../common",
+    "${usage_statistics_path}/test/fuzztest/common",
   ]
 }
 
@@ -35,7 +34,9 @@ ohos_fuzztest("BundleActiveGroupControllerFuzzTest") {
   module_out_path = module_output_path
   fuzz_config_file =
       "${usage_statistics_path}/test/fuzztest/bundleactivegroupcontroller_fuzzer"
+
   configs = [ ":module_private_config" ]
+
   cflags = [
     "-g",
     "-O0",
@@ -44,15 +45,16 @@ ohos_fuzztest("BundleActiveGroupControllerFuzzTest") {
     "-Dprivate=public",
     "-Dprotected=public",
   ]
+
   sources = [
-    "../common/fuzztest_helper.cpp",
     "bundleactivegroupcontroller_fuzzer.cpp",
+    "../common/fuzztest_helper.cpp",
   ]
 
   public_deps = [
     "${usage_statistics_path}:usagestatservice_static",
-    "${usage_statistics_path}:usagestatsinner",
   ]
+
   external_deps = [
     "ability_runtime:app_manager",
     "ability_runtime:wantagent_innerkits",

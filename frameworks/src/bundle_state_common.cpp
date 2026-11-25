@@ -725,13 +725,6 @@ std::unique_ptr<AsyncCallbackInfoEventStats> BundleStateCommon::HandleEventStats
         BundleStateCommon::HandleParamErr(env, ERR_ASYNC_CALLBACK_NULLPTR, "");
         return nullptr;
     }
-    if (memset_s(asyncCallbackInfo, sizeof(*asyncCallbackInfo), 0, sizeof(*asyncCallbackInfo)) != EOK) {
-        params.errorCode = ERR_ASYNC_CALLBACK_INIT_FAILED;
-        BundleStateCommon::HandleParamErr(env, ERR_ASYNC_CALLBACK_INIT_FAILED, "");
-        delete asyncCallbackInfo;
-        asyncCallbackInfo = nullptr;
-        return nullptr;
-    }
     std::unique_ptr<AsyncCallbackInfoEventStats> callbackPtr {asyncCallbackInfo};
     callbackPtr->beginTime = params.beginTime;
     callbackPtr->endTime = params.endTime;

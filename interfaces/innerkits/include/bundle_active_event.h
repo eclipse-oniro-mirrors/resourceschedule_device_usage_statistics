@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -51,6 +51,8 @@ public:
     static const int32_t SYSTEM_UNLOCK = 21;
     static const int32_t SYSTEM_SLEEP = 22;
     static const int32_t SYSTEM_WAKEUP = 23;
+    static const int32_t APP_FOREGROUND = 24; // onForegroundApplicationChanged() called, app is front.
+    static const int32_t APP_BACKGROUND = 25; // onForegroundApplicationChanged() called, app is background.
     inline static const std::string DEVICE_EVENT_PACKAGE_NAME = "openharmony";
     std::string bundleName_;
     std::string continuousTaskAbilityName_;

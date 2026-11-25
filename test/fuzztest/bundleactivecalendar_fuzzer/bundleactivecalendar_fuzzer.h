@@ -13,19 +13,9 @@
  * limitations under the License.
  */
 
-#ifndef BUNDLEACTIVECALENDAR_FUZZER_H
-#define BUNDLEACTIVECALENDAR_FUZZER_H
-
-#include <cstdint>
-#include <unistd.h>
-#include <climits>
-#include <cstdio>
-#include <cstdlib>
-#include <fcntl.h>
-#include <string>
-#include <vector>
-#include <algorithm>
+#ifndef BUNDLE_ACTIVE_CALENDAR_FUZZER_H
+#define BUNDLE_ACTIVE_CALENDAR_FUZZER_H
 
 #define FUZZ_PROJECT_NAME "bundleactivecalendar_fuzzer"
 
-#endif // BUNDLEACTIVECALENDAR_FUZZER_H
+#endif // BUNDLE_ACTIVE_CALENDAR_FUZZER_H

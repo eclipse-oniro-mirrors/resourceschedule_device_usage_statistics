@@ -126,13 +126,6 @@ void BundleStateCommon::AsyncInit(napi_env env, PARAMT &params, ASYNCT* &asyncCa
         BundleStateCommon::HandleParamErr(env, ERR_ASYNC_CALLBACK_NULLPTR, "");
         return;
     }
-    if (memset_s(asyncCallbackInfo, sizeof(*asyncCallbackInfo), 0, sizeof(*asyncCallbackInfo))
-        != EOK) {
-        params.errorCode = ERR_ASYNC_CALLBACK_INIT_FAILED;
-        BundleStateCommon::HandleParamErr(env, ERR_ASYNC_CALLBACK_INIT_FAILED, "");
-        delete asyncCallbackInfo;
-        asyncCallbackInfo = nullptr;
-    }
 }
 }  // namespace DeviceUsageStats
 }  // namespace OHOS

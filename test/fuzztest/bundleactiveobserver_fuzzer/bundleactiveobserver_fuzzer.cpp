@@ -23,23 +23,12 @@
 #include "bundle_active_service.h"
 #include "iapp_group_callback.h"
 #include "bundle_active_config_reader.h"
+#include "fuzzer/FuzzedDataProvider.h"
 
 namespace OHOS {
 namespace DeviceUsageStats {
-    constexpr uint32_t U32_AT_SIZE = 4;
-    constexpr uint8_t TWENTYFOUR = 24;
-    constexpr uint8_t SIXTEEN = 16;
-    constexpr uint8_t EIGHT = 8;
-    constexpr uint8_t TWO = 2;
-    constexpr uint8_t THREE = 3;
     bool g_isInited = false;
-
-    uint32_t GetU32Data(const char* ptr)
-    {
-        return (ptr[0] << TWENTYFOUR) | (ptr[1] << SIXTEEN) | (ptr[TWO] << EIGHT) | (ptr[THREE]);
-    }
-
-    bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
+    bool DoSomethingInterestingWithMyAPI(FuzzedDataProvider* provider)
     {
         DelayedSingleton<FuzztestHelper>::GetInstance()->NativeTokenGet();
         if (!g_isInited) {
@@ -50,8 +39,8 @@ namespace DeviceUsageStats {
         DelayedSingleton<BundleActiveService>::GetInstance()->RegisterAppGroupCallBack(appGroupCallback);
         DelayedSingleton<BundleActiveService>::GetInstance()->UnRegisterAppGroupCallBack(appGroupCallback);
         bool result = false;
-        int32_t userId = static_cast<int32_t>(GetU32Data(data));
-        std::string inputBundlName(data);
+        int32_t userId = provider->ConsumeIntegral<int32_t>();
+        std::string inputBundlName = provider->ConsumeRandomLengthString();
         DelayedSingleton<BundleActiveService>::GetInstance()->IsBundleIdle(result, inputBundlName, userId);
         DelayedSingleton<BundleActiveService>::GetInstance()->IsBundleUsePeriod(result, inputBundlName, userId);
         DelayedSingleton<BundleActiveConfigReader>::GetInstance()->GetApplicationUsePeriodicallyConfig();
@@ -60,18 +49,17 @@ namespace DeviceUsageStats {
         return true;
     }
 
-    bool BundleActiveServiceDumpFuzzTest(const char* data, size_t size)
+    bool BundleActiveServiceDumpFuzzTest(FuzzedDataProvider* provider)
     {
-        int32_t fd = static_cast<int32_t>(GetU32Data(data));
+        int32_t fd = provider->ConsumeIntegral<int32_t>();
         std::vector<std::u16string> args;
-        args = {to_utf16(std::to_string(GetU32Data(data)))};
+        args = {to_utf16(provider->ConsumeRandomLengthString())};
         DelayedSingleton<BundleActiveService>::GetInstance()->Dump(fd, args);
         DelayedSingleton<BundleActiveService>::GetInstance()->AllowDump();
-
         std::vector<std::string> dumpOption = {
-            std::to_string(GetU32Data(data)), std::to_string(GetU32Data(data)),
-            std::to_string(GetU32Data(data)), std::to_string(GetU32Data(data)),
-            std::to_string(GetU32Data(data)), std::to_string(GetU32Data(data))};
+            provider->ConsumeRandomLengthString(), provider->ConsumeRandomLengthString(),
+            provider->ConsumeRandomLengthString(), provider->ConsumeRandomLengthString(),
+            provider->ConsumeRandomLengthString(), provider->ConsumeRandomLengthString()};
         std::vector<std::string> dumpInfo;
         DelayedSingleton<BundleActiveService>::GetInstance()->ShellDump(dumpOption, dumpInfo);
         dumpInfo.clear();
@@ -92,30 +80,9 @@ namespace DeviceUsageStats {
 /* Fuzzer entry point */
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    /* Run your code on data */
-    if (data == nullptr) {
-        return 0;
-    }
-
-    if (size < OHOS::DeviceUsageStats::U32_AT_SIZE) {
-        return 0;
-    }
-    char* ch = (char *)malloc(size + 1);
-    if (ch == nullptr) {
-        return 0;
-    }
-
-    (void)memset_s(ch, size + 1, 0x00, size + 1);
-    if (memcpy_s(ch, size, data, size) != EOK) {
-        free(ch);
-        ch = nullptr;
-        return 0;
-    }
-
-    OHOS::DeviceUsageStats::DoSomethingInterestingWithMyAPI(ch, size);
-    OHOS::DeviceUsageStats::BundleActiveServiceDumpFuzzTest(ch, size);
-    free(ch);
-    ch = nullptr;
+    FuzzedDataProvider fdp(data, size);
+    OHOS::DeviceUsageStats::DoSomethingInterestingWithMyAPI(&fdp);
+    OHOS::DeviceUsageStats::BundleActiveServiceDumpFuzzTest(&fdp);
     return 0;
 }
 

@@ -172,6 +172,25 @@ ErrCode BundleActiveClient::QueryBundleEvents(std::vector<BundleActiveEvent>& bu
     return err;
 }
 
+ErrCode BundleActiveClient::QueryBundleEventsByFilter(std::vector<BundleActiveEvent>& bundleActiveEvents,
+    const BundleActiveEventFilter& filter)
+{
+    std::string traceStr(__func__);
+    traceStr += ",maxNum:" + std::to_string(filter.maxNum_)
+        + ",beginTime:" + std::to_string(filter.beginTime_)
+        + ",endTime:" + std::to_string(filter.endTime_)
+        + ",userId:" + std::to_string(filter.userId_);
+    HitraceScoped traceScoped(HITRACE_TAG_OHOS, traceStr);
+    std::lock_guard<ffrt::recursive_mutex> lock(mutex_);
+    ErrCode ret = GetBundleActiveProxy();
+    if (ret != ERR_OK) {
+        return ret;
+    }
+    auto err = bundleActiveProxy_->QueryBundleEventsByFilter(bundleActiveEvents, filter);
+    BUNDLE_ACTIVE_LOGI("QueryBundleEvents bundleActiveEvents is %{public}zu", bundleActiveEvents.size());
+    return err;
+}
+
 ErrCode BundleActiveClient::SetAppGroup(std::string bundleName, const int32_t newGroup, int32_t userId)
 {
     std::string traceStr(__func__);
